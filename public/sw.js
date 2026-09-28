@@ -9,7 +9,7 @@ self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   if (e.action === "stop") {
     e.waitUntil(
-      fetch("/api/stop", { method: "POST", headers: { "x-pin": e.notification.data?.pin || "" } })
+      fetch("/api/stop", { method: "POST", headers: { "content-type": "application/json" } })
         .then(() => self.clients.matchAll({ type: "window" }))
         .then((cs) => cs.forEach((c) => c.postMessage("reload")))
     );

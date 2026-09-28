@@ -71,11 +71,17 @@
   .foot button, .foot a { color: var(--muted); font-size: 13px; text-decoration: none; }
   #err { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
     background: var(--danger); color: #fff; padding: 12px; border-radius: 10px; display: none; }
-  .pin { display: grid; gap: 10px; padding: 40px 0; }
+  .login { display: grid; justify-items: center; gap: 18px; padding: 48px 0; text-align: center; }
+  .login h2 { margin: 0; font-size: 26px; }
+  .login p { margin: 0; color: var(--muted); max-width: 320px; }
+  .login .fine { font-size: 12px; }
+  .login a { color: var(--muted); }
+  .who { color: var(--muted); font-size: 13px; text-align: center; margin-top: 16px; }
+  body.out header nav, body.out .foot, body.out .who { display: none; }
   @media (prefers-reduced-motion: reduce) { .act:active { transform: none; } }
 </style>
 </head>
-<body>
+<body class="out">
 <main>
   <header>
     <h1>Timetrack</h1>
@@ -89,16 +95,19 @@
   <div class="foot">
     <button id="notif">Enable lock-screen timer</button>
     <a href="#" id="csv">Export CSV</a>
-    <button id="logout">Change PIN</button>
+    <button id="logout">Sign out</button>
+    <button id="delacct">Delete account</button>
   </div>
+  <div class="who" id="who"></div>
 </main>
 <div id="err"></div>
+<script src="https://accounts.google.com/gsi/client" async></script>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const app = $("#app");
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-let pin = localStorage.getItem("pin") || "";
+let signedIn = false;
 let state = { activities: [], running: null, totals: [] };
 let view = "track";
 let offset = 0; // serverNow - clientNow ms
@@ -107,10 +116,10 @@ let entries = [];
 async function api(path, opts = {}) {
   const r = await fetch("/api" + path, {
     ...opts,
-    headers: { "content-type": "application/json", "x-pin": pin, ...(opts.headers || {}) },
+    headers: { "content-type": "application/json", ...(opts.headers || {}) },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
-  if (r.status === 401) { pin = ""; localStorage.removeItem("pin"); render(); throw new Error("Wrong PIN"); }
+  if (r.status === 401) { signedIn = false; render(); throw new Error("Please sign in"); }
   if (!r.ok) throw new Error((await r.json()).error || r.statusText);
   return r.json();
 }
@@ -132,15 +141,14 @@ function total(id, key) {
 }
 
 async function load() {
-  if (!pin && !localStorage.getItem("nopin")) return render();
   try {
     const s = await api(`/state?tz=${encodeURIComponent(tz)}`);
     offset = new Date(s.serverNow) - Date.now();
     state = s;
-    if (!pin) localStorage.setItem("nopin", "1");
+    signedIn = true;
     if (view === "history") entries = await api("/entries?days=14");
     render();
-  } catch (e) { toast(e.message); render(); }
+  } catch (e) { if (signedIn) toast(e.message); render(); }
 }
 
 async function start(id) {
@@ -154,17 +162,35 @@ async function stop() {
 
 function render() {
   document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
-  if (!pin && !localStorage.getItem("nopin")) {
-    app.innerHTML = `<div class="pin manage">
-      <input type="password" id="pinin" placeholder="PIN" inputmode="numeric" autofocus>
-      <button class="save" id="pinok" style="padding:12px">Open</button></div>`;
-    $("#pinok").onclick = () => { pin = $("#pinin").value; localStorage.setItem("pin", pin); load(); };
-    $("#pinin").onkeydown = (e) => e.key === "Enter" && $("#pinok").click();
-    return;
-  }
+  document.body.classList.toggle("out", !signedIn);
+  if (!signedIn) return renderLogin();
+  const u = state.user;
+  $("#who").textContent = u ? `Signed in as ${u.email}` : "";
   if (view === "track") renderTrack();
   else if (view === "manage") renderManage();
   else renderHistory();
+}
+
+let googleClientId = null;
+async function renderLogin() {
+  app.innerHTML = `<div class="login">
+    <h2>Timetrack</h2>
+    <p>One tap to start a timer, one tap to stop. See where your day goes.</p>
+    <div id="gbtn"></div>
+    <p class="fine">Your data is private to your account. <a href="/privacy.html">Privacy</a></p></div>`;
+  try {
+    if (googleClientId === null) googleClientId = (await fetch("/config").then((r) => r.json())).googleClientId;
+    if (!googleClientId) return toast("Sign-in is not configured on the server");
+    await new Promise((ok) => (function wait() { window.google?.accounts?.id ? ok() : setTimeout(wait, 50); })());
+    google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogle });
+    google.accounts.id.renderButton($("#gbtn"), { theme: "filled_black", size: "large", shape: "pill", text: "continue_with" });
+  } catch (e) { toast("Could not load Google sign-in"); }
+}
+async function onGoogle({ credential }) {
+  const r = await fetch("/auth/google", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ credential }) });
+  if (!r.ok) return toast((await r.json().catch(() => ({}))).error || "Sign-in failed");
+  view = "track";
+  load();
 }
 
 function renderTrack() {
@@ -255,10 +281,22 @@ setInterval(load, 30000);
 document.addEventListener("visibilitychange", () => !document.hidden && load());
 
 document.querySelectorAll("nav button").forEach((b) => b.onclick = () => { view = b.dataset.view; load(); });
-$("#logout").onclick = () => { localStorage.removeItem("pin"); localStorage.removeItem("nopin"); pin = ""; render(); };
+$("#logout").onclick = async () => {
+  await stopNotify();
+  await fetch("/auth/logout", { method: "POST" });
+  window.google?.accounts?.id?.disableAutoSelect();
+  signedIn = false; state = { activities: [], running: null, totals: [] }; render();
+};
+$("#delacct").onclick = async () => {
+  if (!confirm("Delete your account and all tracked time? This cannot be undone.")) return;
+  try { await api("/me", { method: "DELETE" }); } catch (e) { return toast(e.message); }
+  await stopNotify();
+  signedIn = false; state = { activities: [], running: null, totals: [] }; render();
+};
 $("#csv").onclick = async (e) => {
   e.preventDefault();
-  const r = await fetch("/api/export.csv", { headers: { "x-pin": pin } });
+  const r = await fetch("/api/export.csv");
+  if (!r.ok) return toast("Export failed");
   const url = URL.createObjectURL(await r.blob());
   Object.assign(document.createElement("a"), { href: url, download: "timetrack.csv" }).click();
 };
@@ -272,15 +310,18 @@ $("#notif").onclick = async () => {
   toast(p === "granted" ? "Enabled" : "Not allowed");
   notify();
 };
+async function stopNotify() {
+  if (!swReg) return;
+  (await swReg.getNotifications({ tag: "running" })).forEach((n) => n.close());
+}
 async function notify() {
   if (!swReg || Notification.permission !== "granted") return;
-  const old = await swReg.getNotifications({ tag: "running" });
-  old.forEach((n) => n.close());
+  await stopNotify();
   if (!state.running) return;
   swReg.showNotification(state.running.name, {
     tag: "running", body: "Running since " + new Date(state.running.started_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
     silent: true, requireInteraction: true, icon: "/icon-192.png",
-    actions: [{ action: "stop", title: "Stop" }], data: { pin },
+    actions: [{ action: "stop", title: "Stop" }],
   });
 }
 navigator.serviceWorker?.addEventListener("message", (e) => e.data === "reload" && load());
