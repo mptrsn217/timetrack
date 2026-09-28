@@ -8,10 +8,29 @@ import { OAuth2Client } from "google-auth-library";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { Pool } = pg;
 const DB_URL = process.env.DATABASE_URL || "";
-const pool = new Pool({
-  connectionString: DB_URL,
-  ssl: /localhost|127\.0\.0\.1/.test(DB_URL) || process.env.PGSSL === "disable" ? undefined : { rejectUnauthorized: false },
-});
+if (!DB_URL) {
+  console.error("DATABASE_URL is not set. On Railway set it to ${{Postgres.DATABASE_URL}}");
+  process.exit(1);
+}
+// private networks (Railway internal, localhost) usually have no SSL; public hosts usually require it.
+// Try the likely setting first and fall back to the other one.
+const makePool = (ssl) => new Pool({ connectionString: DB_URL, ssl: ssl ? { rejectUnauthorized: false } : undefined });
+const sslFirst = process.env.PGSSL ? process.env.PGSSL !== "disable" : !/localhost|127\.0\.0\.1|\.railway\.internal/.test(DB_URL);
+let pool = makePool(sslFirst);
+try {
+  await pool.query("SELECT 1");
+} catch (e) {
+  if (process.env.PGSSL) throw e;
+  console.warn(`Database connection with ssl=${sslFirst} failed (${e.message}); retrying with ssl=${!sslFirst}`);
+  await pool.end().catch(() => {});
+  pool = makePool(!sslFirst);
+  try {
+    await pool.query("SELECT 1");
+  } catch (e2) {
+    console.error(`Cannot connect to the database: ${e2.message}`);
+    process.exit(1);
+  }
+}
 // data created before Google login existed is handed to this account on its first sign-in
 const LEGACY_OWNER_EMAIL = (process.env.LEGACY_OWNER_EMAIL || "").toLowerCase();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
