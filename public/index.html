@@ -76,6 +76,16 @@
   .btn-stop { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--bg);
     padding: 14px 20px; border-radius: 999px; font-weight: 700; flex-shrink: 0; }
   .btn-stop:active { transform: scale(.97); }
+  .goal { margin-top: 18px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--c) 25%, transparent); }
+  .goal .gl1 { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 650; font-size: 15px; }
+  .goal .streak { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 99px;
+    background: color-mix(in srgb, var(--c) 22%, transparent); }
+  .goal .gbar { position: relative; height: 8px; border-radius: 99px; margin: 10px 0 8px;
+    background: color-mix(in srgb, var(--c) 18%, var(--surface)); }
+  .goal .gfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--c); }
+  .goal .gmark { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .55; }
+  .goal .gsub { color: var(--muted); font-size: 13px; }
+  .goal .gl1.rec span:first-child { color: var(--c); }
 
   .daybar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin-top: 16px; gap: 2px; }
   .daybar span { background: var(--c); min-width: 3px; }
@@ -188,6 +198,22 @@
   .col .xl b { font-weight: 600; color: var(--muted); }
   .col.today .xl, .col.today .xl b { color: var(--ink); }
   .col.sel .stack { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+  .seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+  .seg button { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .tl { display: grid; gap: 5px; margin-bottom: 14px; }
+  .tl-row { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 6px; }
+  .tl-d { font-size: 11px; color: var(--faint); white-space: nowrap; }
+  .tl-row.today .tl-d { color: var(--ink); font-weight: 700; }
+  .tl-track { position: relative; height: 16px; border-radius: 4px; background-color: color-mix(in srgb, var(--surface-2) 60%, transparent);
+    background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: 25% 100%; }
+  .blk { position: absolute; top: 0; bottom: 0; min-width: 3px; border-radius: 3px; background: var(--c); box-shadow: 0 0 0 1px var(--surface); }
+  .blk:hover { filter: brightness(1.1); }
+  .tl-now { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--ink); }
+  .tl-axis { position: relative; height: 14px; }
+  .tl-axis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--faint); }
+  .tl-axis span:first-child { transform: none; }
+  .tl-axis span:last-child { transform: translateX(-100%); }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
   .lg { display: inline-flex; align-items: center; gap: 6px; }
   .lg i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
@@ -317,7 +343,7 @@ function fmt(sec) {
 function fmtShort(sec) {
   sec = Math.max(0, sec);
   const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
-  return h ? `${h}h ${m}m` : `${m}m`;
+  return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
 }
 const clock = (d) => new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 function runSec() { return state.running ? (now() - new Date(state.running.started_at)) / 1000 : 0; }
@@ -394,6 +420,38 @@ async function onGoogle({ credential }) {
 }
 
 /* ---------- track ---------- */
+// progress of the running session: first toward the usual (average) length, then toward the record
+function goalHTML() {
+  const st = state.stats, r = state.running;
+  if (!st || !r) return "";
+  const el = runSec();
+  const left = (sec) => (sec < 60 ? `${Math.ceil(sec)}s` : fmtShort(sec + 59));
+  const streak = st.streak >= 2 ? `<span class="streak">${st.streak}-day streak</span>` : "";
+  if (!st.sessions) {
+    return `<div class="gl1"><span>First ${esc(r.name)} session</span>${streak}</div>
+      <div class="gsub">Your average and record start from this one.</div>`;
+  }
+  const facts = `Average ${fmtShort(st.avg)} · Record ${fmtShort(st.max)}`;
+  let head, pct, mark = "", cls = "";
+  if (el < st.avg) {
+    head = `${left(st.avg - el)} to your average`;
+    pct = el / st.avg;
+  } else if (el < st.max) {
+    head = `Past average · ${left(st.max - el)} to your record`;
+    pct = el / st.max;
+    mark = `<span class="gmark" style="left:${(st.avg / st.max) * 100}%" title="Average"></span>`;
+  } else {
+    head = "New record!";
+    pct = 1;
+    cls = "rec";
+  }
+  const sub = cls ? `Previous best ${fmtShort(st.max)} · ${fmtShort(el - st.max)} longer` : facts;
+  return `<div class="gl1 ${cls}"><span>${head}</span>${streak}</div>
+    <div class="gbar" role="progressbar" aria-valuenow="${Math.round(pct * 100)}" aria-valuemin="0" aria-valuemax="100">
+      <div class="gfill" style="width:${pct * 100}%"></div>${mark}</div>
+    <div class="gsub num">${sub}</div>`;
+}
+
 function renderTrack() {
   const r = state.running;
   const acts = state.activities;
@@ -408,7 +466,8 @@ function renderTrack() {
         <div class="row">
           <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)}</div></div>
           <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button>
-        </div></section>`
+        </div>
+        <div class="goal" id="goal">${goalHTML()}</div></section>`
     : `<section class="hero">
         <div class="label">Today</div>
         <div><div class="clock num" id="todaytotal">${fmtShort(todayTotal)}</div>
@@ -509,18 +568,51 @@ function renderDaily() {
   const grid = ticks.map((t) => `<div class="gl" style="bottom:${(t / top) * H}px"><span>${t ? (t % 1 ? `${t * 60}m` : `${t}h`) : ""}</span></div>`).join("");
   const legend = series.map((s) => `<span class="lg" style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join("");
 
+  const toggle = `<div class="seg" role="tablist" aria-label="Chart view">
+      <button role="tab" data-mode="totals" aria-selected="${dailyMode === "totals"}">Totals</button>
+      <button role="tab" data-mode="timeline" aria-selected="${dailyMode === "timeline"}">Timeline</button></div>`;
   return `<h2 class="section"><span>Daily</span><span class="num">${avg ? `avg ${fmtShort(avg)} / day` : ""}</span></h2>
     <div class="card chart">
-      <div class="plot" style="height:${H}px">${grid}<div class="cols">${bars}</div></div>
+      ${toggle}
+      ${dailyMode === "timeline" ? renderTimeline(days) : `<div class="plot" style="height:${H}px">${grid}<div class="cols">${bars}</div></div>`}
       ${series.length ? `<div class="legend">${legend}</div>` : ""}
       <div class="tip" id="tip" hidden></div>
     </div>`;
 }
 
+let dailyMode = "totals";
+try { dailyMode = localStorage.getItem("dailyMode") === "timeline" ? "timeline" : "totals"; } catch {}
+
+// one row per day, 00:00 on the left to 24:00 on the right, so the same clock time lines up across days
+function renderTimeline(days) {
+  const todayKey = dayStart(new Date()).getTime();
+  const rows = [...days].reverse().map((d) => {
+    const a = d.date.getTime(), b = addDays(d.date, 1).getTime(), span = b - a;
+    const blocks = entries.map((e) => {
+      const s = Math.max(new Date(e.started_at).getTime(), a), t = Math.min(entryEnd(e), b);
+      if (t <= s) return "";
+      const title = `${e.name} ${clock(e.started_at)}–${e.stopped_at ? clock(e.stopped_at) : "now"} (${fmtShort(dur(e))})`;
+      return `<button class="blk" data-entry="${e.id}" style="--c:${e.color};left:${((s - a) / span) * 100}%;width:${((t - s) / span) * 100}%" title="${esc(title)}" aria-label="${esc(title)}"></button>`;
+    }).join("");
+    const isToday = a === todayKey;
+    const nowMark = isToday ? `<span class="tl-now" style="left:${((now() - a) / span) * 100}%"></span>` : "";
+    return `<div class="tl-row${isToday ? " today" : ""}">
+      <span class="tl-d num">${d.date.toLocaleDateString(undefined, { weekday: "short" })} ${d.date.getDate()}</span>
+      <div class="tl-track">${blocks}${nowMark}</div></div>`;
+  }).join("");
+  const axis = [0, 6, 12, 18, 24].map((h) => `<span style="left:${(h / 24) * 100}%">${String(h).padStart(2, "0")}</span>`).join("");
+  return `<div class="tl">${rows}<div class="tl-row axis"><span class="tl-d"></span><div class="tl-axis num">${axis}</div></div></div>`;
+}
+
 function bindDaily() {
+  $$(".seg button").forEach((b) => b.onclick = () => {
+    dailyMode = b.dataset.mode;
+    try { localStorage.setItem("dailyMode", dailyMode); } catch {}
+    renderHistory();
+  });
   const days = dailyTotals(), series = chartSeries();
   const tip = $("#tip"), chart = $(".chart");
-  if (!tip) return;
+  if (!tip || dailyMode !== "totals") return;
   let pinned = null;
   const show = (btn) => {
     const d = days[btn.dataset.day];
@@ -790,6 +882,8 @@ setInterval(() => {
   if (!state.running || !signedIn) return;
   const v = fmt(runSec());
   const c = $("#clock"); if (c) c.textContent = v;
+  const g = $("#goal");
+  if (g) g.innerHTML = goalHTML();
   const sub = $(`[data-sub="${state.running.activity_id}"]`); if (sub) sub.textContent = v;
 }, 1000);
 setInterval(() => signedIn && load({ background: true }), 30000);

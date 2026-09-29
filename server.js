@@ -166,8 +166,32 @@ app.get("/api/state", h(async (req, res) => {
      FROM entries WHERE user_id=$2 AND started_at >= now() - interval '8 days' GROUP BY activity_id`,
     [tz, req.uid]
   );
-  res.json({ user, activities, running: running || null, totals, serverNow: new Date().toISOString() });
+  const stats = running ? await sessionStats(req.uid, running.activity_id, running.id, tz) : null;
+  res.json({ user, activities, running: running || null, stats, totals, serverNow: new Date().toISOString() });
 }));
+
+// Past sessions of an activity (excluding the running one): average and longest length,
+// plus the streak of consecutive local days, ending today, on which it was tracked.
+async function sessionStats(uid, activityId, runningId, tz) {
+  const [s] = await q(
+    `SELECT count(*)::int AS sessions,
+       COALESCE(avg(EXTRACT(EPOCH FROM stopped_at - started_at)), 0)::int AS avg,
+       COALESCE(max(EXTRACT(EPOCH FROM stopped_at - started_at)), 0)::int AS max
+     FROM entries WHERE user_id=$1 AND activity_id=$2 AND id<>$3 AND stopped_at IS NOT NULL
+       AND stopped_at - started_at >= interval '1 minute'`,
+    [uid, activityId, runningId]
+  );
+  const days = await q(
+    `SELECT DISTINCT (started_at AT TIME ZONE $3)::date::text AS d FROM entries
+     WHERE user_id=$1 AND activity_id=$2 AND started_at > now() - interval '400 days' ORDER BY d DESC`,
+    [uid, activityId, tz]
+  );
+  const [{ today }] = await q("SELECT (now() AT TIME ZONE $1)::date::text AS today", [tz]);
+  const have = new Set(days.map((r) => r.d));
+  let streak = 0;
+  for (const d = new Date(today + "T00:00:00Z"); have.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++;
+  return { ...s, streak };
+}
 
 function cleanName(name) {
   return typeof name === "string" && name.trim() ? name.trim().slice(0, 60) : null;
