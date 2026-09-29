@@ -888,6 +888,8 @@ function openLive() {
 function closeLive() { if (liveDlg.open) liveDlg.close(); }
 liveDlg.addEventListener("close", () => setWake(false));
 
+// whole minutes, rounded up, so "X to go" and "your usual Y" always agree
+const upMin = (sec) => fmtShort(Math.ceil(Math.max(0, sec) / 60) * 60);
 function liveModel() {
   const r = state.running, f = state.focus, p = !r ? state.pause : null;
   const id = r?.activity_id ?? f?.activity_id ?? p?.activity_id;
@@ -918,15 +920,15 @@ function liveModel() {
       m.pct = Math.min(el / 1800, 1);
       m.msg = limit ? "Tracking it is the first step. Stop whenever you're ready" : "First session. Every minute counts";
     } else if (!limit) {
-      if (el < st.avg) { m.pct = el / st.avg; m.msg = `${fmtShort(st.avg - el + 59)} to beat your usual ${fmtShort(st.avg)}`; }
-      else if (el < st.max) { m.pct = el / st.max; m.msg = `Past your usual! ${fmtShort(st.max - el + 59)} to a new record`; m.tone = "good"; }
+      if (el < st.avg) { m.pct = el / st.avg; m.msg = `${upMin(st.avg - el)} to beat your usual ${upMin(st.avg)}`; }
+      else if (el < st.max) { m.pct = el / st.max; m.msg = `Past your usual! ${upMin(st.max - el)} to a new record`; m.tone = "good"; }
       else { m.pct = 1; m.msg = `New record! ${fmtShort(el - st.max)} longer than ever`; m.tone = "good"; }
     } else if (el < st.avg) {
       m.pct = el / st.avg;
-      m.msg = `You usually stop around ${fmtShort(st.avg)}. ${fmtShort(st.avg - el + 59)} to go`;
+      m.msg = `You usually stop around ${upMin(st.avg)}. ${upMin(st.avg - el)} to go`;
     } else {
       m.pct = 1; m.tone = "bad"; m.ringColor = "var(--danger)";
-      m.msg = `Longer than usual (${fmtShort(st.avg)}). Time to stop?`;
+      m.msg = `Longer than usual (${upMin(st.avg)}). Time to stop?`;
     }
     const g = goalState(a);
     if (limit && g?.over) { m.tone = "bad"; m.ringColor = "var(--danger)"; m.msg = `Over your limit by ${fmtShort(g.v - g.g)}. Time to stop?`; }
@@ -989,7 +991,7 @@ function liveBody() {
   return `<div class="lvhero">
       <div class="lvclockwrap">${ring}<div class="lvclock"><small>${esc(m.label)}</small><b class="num">${m.big}</b><span>${esc(m.sub)}</span></div></div>
       <p class="lvmsg ${m.tone}">${m.tone === "bad" ? icon("alert", 18) : ""}${esc(m.msg)}</p>
-      ${st?.sessions && !state.focus ? `<p class="lvfacts num">usual ${fmtShort(st.avg)} · record ${fmtShort(st.max)} · ${st.sessions} sessions</p>` : ""}
+      ${st?.sessions && !state.focus ? `<p class="lvfacts num">usual ${upMin(st.avg)} · record ${upMin(st.max)} · ${st.sessions} sessions</p>` : ""}
     </div>
     ${cards.length ? `<div class="lvcards">${cards.join("")}</div>` : ""}${rank}`;
 }
