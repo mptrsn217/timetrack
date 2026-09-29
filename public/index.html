@@ -391,6 +391,83 @@
   #doinstall { justify-self: start; }
   .ibenefit { margin: 0 4px; font-size: 15px; line-height: 1.45; }
 
+  /* focus */
+  .hero.focus .rounds { display: flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .hero.focus .rounds i { width: 22px; height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--c) 25%, transparent); }
+  .hero.focus .rounds i.done { background: var(--c); }
+  .hero.focus .rounds i.now { background: linear-gradient(90deg, var(--c) 50%, color-mix(in srgb, var(--c) 25%, transparent) 50%); }
+  .hero.focus .rounds span { margin-left: 6px; }
+  #startfocus { margin-top: 2px; }
+  .presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .preset { text-align: left; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+  .preset b { display: block; font-size: 14px; }
+  .preset small { color: var(--muted); font-size: 12px; }
+  .preset[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  .goalrow.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* starter */
+  .starter { padding: 18px 16px; display: grid; gap: 10px; margin-top: 4px; }
+  .starter h2 { margin: 0; font-size: 20px; }
+  .starter .label { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .starter .nprefs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .starter .nrow { padding: 8px 6px; }
+  .starter .btn { margin-top: 6px; }
+  .starter .linkbtn { justify-self: center; }
+
+  /* weekly review */
+  .reviewcard { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-top: 8px; padding: 14px 16px;
+    border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); color: var(--ink); }
+  .reviewcard > svg { color: var(--accent); flex-shrink: 0; }
+  .reviewcard span { flex: 1; }
+  .reviewcard small { display: block; color: var(--muted); font-size: 13px; }
+  .reviewcard .chev { flex: 0; font-size: 22px; color: var(--faint); }
+  .rvhead { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .rvhead h3 { margin: 0; text-align: center; }
+  .rvhead h3 small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+  #rvprev svg { transform: rotate(-90deg); } #rvnext svg { transform: rotate(-90deg); }
+  .rvtotal { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rvtotal b { font-size: 36px; letter-spacing: -.02em; }
+  .review .delta { font-size: 13px; color: var(--muted); }
+  .review .delta.better, .review .better { color: var(--good); }
+  .review .delta.worse, .review .worse { color: var(--danger); }
+  .rvdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 76px; }
+  .rvdays span { display: grid; justify-items: center; align-content: end; gap: 4px; height: 100%; }
+  .rvdays i { width: 60%; max-width: 22px; border-radius: 4px 4px 0 0; background: var(--accent); }
+  .rvdays small { font-size: 11px; color: var(--muted); }
+  .rvfacts { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rvfacts b { color: var(--ink); }
+  .review .label { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .rvrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .rvname { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .rvname i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+  .rvname small { color: var(--muted); font-size: 12px; width: 100%; padding-left: 17px; margin-top: -2px; }
+  .rvval { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+
+  /* heatmap */
+  .heat { padding: 14px; --cell: 12px; }
+  .hchips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .hchip { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; padding: 5px 10px; border-radius: 99px; font-size: 13px;
+    font-weight: 600; color: var(--muted); background: var(--surface-2); }
+  .hchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .hchip[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+  .hscroll { overflow-x: auto; scrollbar-width: thin; padding-bottom: 8px; }
+  .hwrap { display: flex; gap: 4px; width: max-content; }
+  .hdays { display: grid; grid-template-rows: 16px repeat(7, var(--cell)); gap: 3px; font-size: 10px; color: var(--faint); }
+  .hdays span { line-height: var(--cell); }
+  .hmonths { display: grid; gap: 3px; height: 16px; font-size: 10px; color: var(--faint); }
+  .hmonths span { white-space: nowrap; overflow: visible; }
+  .hgrid { display: grid; grid-template-rows: repeat(7, var(--cell)); grid-auto-flow: column; grid-auto-columns: var(--cell); gap: 3px; margin-top: 3px; }
+  .hgrid i, .hlegend i { display: block; width: var(--cell); height: var(--cell); border-radius: 3px; }
+  .hgrid i.pad { visibility: hidden; }
+  .l0 { background: var(--surface-2); }
+  .l1 { background: color-mix(in srgb, var(--c) 30%, var(--surface-2)); }
+  .l2 { background: color-mix(in srgb, var(--c) 55%, var(--surface-2)); }
+  .l3 { background: color-mix(in srgb, var(--c) 78%, var(--surface-2)); }
+  .l4 { background: var(--c); }
+  .hgrid i.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .hfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .hlegend { display: inline-flex; align-items: center; gap: 3px; --cell: 10px; }
+
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
     font-weight: 550; text-align: center; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
@@ -445,6 +522,9 @@
   <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></symbol>
   <symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.8v12.4a.8.8 0 0 0 1.2.7l9-6.2a.8.8 0 0 0 0-1.4l-9-6.2A.8.8 0 0 0 6 5.8z"/><rect x="16.5" y="5" width="2.6" height="14" rx="1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -716,6 +796,128 @@ function tileBar(a) {
   return `<span class="tbar${g.over ? " over" : ""}${g.done ? " done" : ""}" aria-hidden="true"><i style="width:${g.pct * 100}%"></i></span>`;
 }
 
+/* ---------- focus mode ---------- */
+const focusLeft = () => (state.focus ? (new Date(state.focus.ends) - now()) / 1000 : 0);
+function focusHero(f) {
+  const work = f.phase === "work", last = f.round >= f.rounds;
+  const dots = Array.from({ length: f.rounds }, (_, i) => {
+    const n = i + 1;
+    const cls = n < f.round || (n === f.round && !work) ? "done" : n === f.round ? "now" : "";
+    return `<i class="${cls}"></i>`;
+  }).join("");
+  return `<section class="hero ${work ? "on" : "paused"} focus" style="--c:${f.color}">
+    <div><div class="label"><span class="pulse"></span>${work ? `Focus · round ${f.round} of ${f.rounds}` : `Break · round ${f.round + 1} of ${f.rounds} next`}</div>
+      <div class="name">${esc(f.name)}</div></div>
+    <div class="row">
+      <div><div class="clock num" id="focusclock">${fmt(Math.max(0, focusLeft()))}</div>
+        <div class="since">${work ? (last ? "Session ends" : `Break (${f.brk} min)`) : "Focus resumes"} at ${clock(f.ends)}</div></div>
+      <span class="hbtns">
+        <button class="btn-pause" id="fskip" aria-label="${work ? (last ? "Finish now" : "Skip to break") : "Skip break"}">${icon("skip", 18)}</button>
+        <button class="btn-stop" id="fstop">${icon("stop", 16)}${work ? "Stop" : "End"}</button></span>
+    </div>
+    <div class="rounds" aria-label="Round ${f.round} of ${f.rounds}">${dots}<span>${f.work} min focus · ${f.brk} min break</span></div></section>`;
+}
+function bindFocusHero() {
+  $("#fskip")?.addEventListener("click", async () => {
+    try { await api("/focus/skip", { method: "POST" }); await load(); } catch (e) { toast(e.message); }
+  });
+  $("#fstop")?.addEventListener("click", async () => {
+    try { const out = await api("/focus/stop", { method: "POST" }); await load(); notify(); toast(out.message); } catch (e) { toast(e.message); }
+  });
+}
+let advancing = false;
+async function advanceFocusNow() {
+  if (advancing) return;
+  advancing = true;
+  try { await api("/focus/advance", { method: "POST" }); await load(); notify(); } catch {}
+  setTimeout(() => (advancing = false), 3000);
+}
+const FOCUS_PRESETS = [[25, 5, 4, "Classic"], [50, 10, 2, "Long"], [90, 15, 1, "Deep"]];
+function openFocus() {
+  const acts = state.activities.filter((a) => a.kind !== "limit");
+  if (!acts.length) return toast("Add an activity first");
+  const r = state.running;
+  const last = acts.find((a) => a.id === r?.activity_id) || [...acts].sort((a, b) => new Date(b.last_at || 0) - new Date(a.last_at || 0))[0];
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Focus mode</h3>
+    <form class="eform" id="focusform">
+      <p class="hint" style="margin:0 4px">Work in focused rounds with short breaks in between. Timetrack switches by itself and notifies you; break time isn't counted.</p>
+      <label>Activity<select class="field" name="act">${acts.map((a) => `<option value="${a.id}" ${a.id === last.id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>
+      <div class="presets">${FOCUS_PRESETS.map(([w, b, n, l], i) => `<button type="button" class="preset" data-i="${i}" aria-pressed="${i === 0}">
+        <b>${l}</b><small>${w} min · ${b} min break · ${n}×</small></button>`).join("")}</div>
+      <div class="goalrow three">
+        <label>Focus (min)<input class="field num" type="number" name="w" min="5" max="180" value="25" inputmode="numeric"></label>
+        <label>Break (min)<input class="field num" type="number" name="b" min="1" max="60" value="5" inputmode="numeric"></label>
+        <label>Rounds<input class="field num" type="number" name="n" min="1" max="12" value="4" inputmode="numeric"></label>
+      </div>
+      <p class="edur num" id="ftotal"></p>
+      <div class="eactions"><span></span><span></span><button type="button" class="btn ghost" id="fcancel">Cancel</button>
+        <button type="submit" class="btn">${icon("target", 16)}Start</button></div>
+    </form>`;
+  const f = $("#focusform");
+  const upd = () => {
+    const w = +f.w.value, b = +f.b.value, n = +f.n.value;
+    $$(".preset", f).forEach((p) => { const [pw, pb, pn] = FOCUS_PRESETS[p.dataset.i]; p.setAttribute("aria-pressed", pw === w && pb === b && pn === n); });
+    $("#ftotal").textContent = w && n ? `${fmtShort(w * n * 60)} of focus, done at ${clock(now() + (w * n + b * (n - 1)) * 60e3)}` : "";
+  };
+  $$(".preset", f).forEach((p) => p.onclick = () => { const [w, b, n] = FOCUS_PRESETS[p.dataset.i]; f.w.value = w; f.b.value = b; f.n.value = n; upd(); });
+  f.oninput = upd; upd();
+  $("#fcancel").onclick = () => editSheet.close();
+  f.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      const out = await api("/focus", { method: "POST", body: { activity_id: Number(f.act.value), work: +f.w.value, brk: +f.b.value, rounds: +f.n.value } });
+      editSheet.close();
+      await load();
+      notify();
+      toast(out.message);
+    } catch (e) { toast(e.message); }
+  };
+  editSheet.showModal();
+}
+
+/* ---------- starter setup (new users) ---------- */
+const STARTERS = [
+  ["Work", "good", 2400, "week"], ["Deep work", "good", 120, "day"], ["Study", "good", 60, "day"], ["Exercise", "good", 180, "week"],
+  ["Reading", "good", 30, "day"], ["Walking", "good", 30, "day"], ["Meditation", "good", 10, "day"], ["Language learning", "good", 20, "day"],
+  ["Housework", "good", null, null], ["Social media", "limit", 30, "day"], ["Gaming", "limit", 60, "day"], ["TV & streaming", "limit", 90, "day"],
+];
+function starterHTML() {
+  const row = ([name, kind, m, p], i) => `<button type="button" class="nrow" data-starter="${i}" aria-pressed="false"><span class="box" aria-hidden="true"></span>
+    <span><b>${name}</b><small>${m ? `${kind === "limit" ? "Limit" : "Goal"} ${fmtShort(m * 60)} / ${p}` : "No goal"}</small></span></button>`;
+  return `<section class="card starter">
+    <h2>Let's set up your activities</h2>
+    <p class="hint" style="margin:0">Pick what you'd like to track. Goals and limits are suggestions; change them any time under Activities.</p>
+    <div class="label">Things to do more of</div>
+    <div class="nprefs">${STARTERS.map((t, i) => (t[1] === "good" ? row(t, i) : "")).join("")}</div>
+    <div class="label">Habits to cut back</div>
+    <div class="nprefs">${STARTERS.map((t, i) => (t[1] === "limit" ? row(t, i) : "")).join("")}</div>
+    <button class="btn" id="starterbtn" disabled>Pick at least one</button>
+    <button class="linkbtn" id="goadd">${icon("plus", 14)}Or create your own</button></section>`;
+}
+function bindStarter() {
+  const btn = $("#starterbtn");
+  if (!btn) return;
+  const picked = () => $$("[data-starter][aria-pressed='true']").map((b) => STARTERS[b.dataset.starter]);
+  $$("[data-starter]").forEach((b) => b.onclick = () => {
+    b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
+    const n = picked().length;
+    btn.disabled = !n;
+    btn.textContent = n ? `Add ${n} ${n === 1 ? "activity" : "activities"}` : "Pick at least one";
+  });
+  btn.onclick = async () => {
+    const list = picked();
+    btn.disabled = true;
+    btn.textContent = "Adding…";
+    try {
+      for (const [i, [name, kind, m, p]] of list.entries()) {
+        await api("/activities", { method: "POST", body: { name, kind, color: PALETTE[i % PALETTE.length], ...(m ? { goal_minutes: m, goal_period: p } : {}) } });
+      }
+      await load();
+      toast(`Added ${list.length}. Tap one to start its timer`);
+    } catch (e) { toast(e.message); await load(); }
+  };
+}
+
 /* ---------- breaks ---------- */
 const pauseLeft = () => (state.pause ? (new Date(state.pause.until) - now()) / 1000 : 0);
 function pausedHero(p) {
@@ -801,7 +1003,8 @@ function idleHero(acts) {
     ? `<div class="glist"><div class="label">Goals</div>${rows}</div>`
     : `<button class="linkbtn setgoals" id="setgoals">${icon("flag", 14)}Set daily or weekly goals</button>`;
 
-  return `<section class="hero idle"><div class="label">Nothing running</div>${resume}${goals}</section>`;
+  return `<section class="hero idle"><div class="label">Nothing running</div>${resume}${goals}
+    <button class="linkbtn" id="startfocus">${icon("target", 14)}Start a focus session</button></section>`;
 }
 
 // "5-day streak · best 12"; for cut-back habits with a daily limit, days stayed under it
@@ -818,13 +1021,14 @@ function renderTrack() {
   const acts = state.activities;
   const runAct = r && acts.find((a) => a.id === r.activity_id);
 
-  const hero = r
+  const hero = state.focus ? focusHero(state.focus) : r
     ? `<section class="hero on" style="--c:${runAct?.color || "var(--accent)"}">
         <div><div class="label"><span class="pulse"></span>Tracking now</div>
         <div class="name">${esc(r.name)}</div></div>
         <div class="row">
           <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)}</div></div>
-          <span class="hbtns"><button class="btn-pause" id="pausebtn" aria-label="Take a break">${icon("pause", 18)}</button>
+          <span class="hbtns"><button class="btn-pause" id="focusbtn" aria-label="Focus mode">${icon("target", 18)}</button>
+          <button class="btn-pause" id="pausebtn" aria-label="Take a break">${icon("pause", 18)}</button>
           <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button></span>
         </div>
         <div class="goal" id="goal">${goalHTML()}</div>
@@ -844,12 +1048,15 @@ function renderTrack() {
            ${tileBar(a)}
          </button>`;
        }).join("")}</div>`
-    : `<div class="empty" style="margin-top:16px"><b>No activities yet</b>Create things you want to track, like Work, Gym or Reading.
-       <div><button class="btn" id="goadd">${icon("plus", 18)}Add activity</button></div></div>`;
+    : starterHTML();
 
-  app.innerHTML = hero + list;
+  app.innerHTML = (acts.length || state.focus || r ? hero : "") + list;
   if (r) $("#stopbtn").onclick = stop;
   $("#pausebtn")?.addEventListener("click", openPause);
+  $("#focusbtn")?.addEventListener("click", () => openFocus());
+  $("#startfocus")?.addEventListener("click", () => openFocus());
+  bindFocusHero();
+  bindStarter();
   $("#resumenow")?.addEventListener("click", resumeBreak);
   $("#endbreak")?.addEventListener("click", async () => {
     try { await api("/pause/cancel", { method: "POST" }); await load(); toast("Session ended"); } catch (e) { toast(e.message); }
@@ -887,7 +1094,14 @@ try {
   if (CHART_MODES.some(([m]) => m === saved)) chartMode = saved;
 } catch {}
 
+let dayLoadedAt = 0;
 async function loadHistoryData() {
+  // the year of days for the heatmap changes slowly; refresh it at most every 5 minutes
+  if (Date.now() - dayLoadedAt > 5 * 60e3) {
+    dayLoadedAt = Date.now();
+    api(`/summary?bucket=day&count=371&tz=${encodeURIComponent(tz)}`).then((d) => { summary.day = d; if (view === "history" && !editing()) renderHistory(); })
+      .catch(() => (dayLoadedAt = 0));
+  }
   const jobs = [api("/entries?days=14"), api(`/summary?bucket=week&count=12&tz=${encodeURIComponent(tz)}`)];
   if (chartMode === "months") jobs.push(api(`/summary?bucket=month&count=12&tz=${encodeURIComponent(tz)}`));
   const [e, w, m] = await Promise.all(jobs);
@@ -1090,13 +1304,128 @@ function renderCompare() {
     ${acts.length ? `<div class="card wk">${rows}</div><p class="hint">The thin mark on each bar is last week's total.</p>` : `<div class="empty">Nothing tracked this week or last.</div>`}`;
 }
 
+function reviewCard() {
+  const sm = summary.week;
+  const cur = sm ? sm.rows.filter((r) => r.bucket === sm.buckets[sm.buckets.length - 1]).reduce((x, r) => x + r.seconds, 0) : 0;
+  return `<button class="reviewcard" id="openreview">${icon("chart", 20)}<span><b>Weekly review</b>
+    <small>${cur ? `This week so far · ${fmtShort(cur)}` : "Your week in numbers"}</small></span><span class="chev">›</span></button>`;
+}
+
+// ---------- calendar heatmap: a year of days, darker = more time ----------
+let heatFilter = "all";
+function renderHeatmap() {
+  const sm = summary.day;
+  if (!sm) return `<h2 class="section"><span>Year</span></h2><div class="empty">Loading…</div>`;
+  const seen = new Set(sm.rows.map((r) => r.activity_id));
+  const acts = sm.activities.filter((a) => seen.has(a.id));
+  if (heatFilter !== "all" && !acts.some((a) => a.id == heatFilter)) heatFilter = "all";
+  const act = acts.find((a) => a.id == heatFilter);
+  const byDay = new Map();
+  for (const r of sm.rows) if (heatFilter === "all" || r.activity_id == heatFilter) byDay.set(r.bucket, (byDay.get(r.bucket) || 0) + r.seconds);
+  const max = Math.max(1, ...byDay.values());
+  const level = (v) => (v < 60 ? 0 : Math.min(4, Math.ceil((v / max) * 4)));
+  const dates = sm.buckets;
+  const pad = (parseDay(dates[0]).getDay() + 6) % 7; // weeks start on Monday
+  const cells = [...Array(pad).fill(null), ...dates];
+  const weeks = Math.ceil(cells.length / 7);
+  let months = "", prevMonth = -1;
+  for (let w = 0; w < weeks; w++) {
+    const d = cells.slice(w * 7, w * 7 + 7).find(Boolean);
+    const m = d ? parseDay(d).getMonth() : prevMonth;
+    months += `<span>${m !== prevMonth && w < weeks - 1 ? parseDay(d).toLocaleDateString(undefined, { month: "short" }) : ""}</span>`;
+    prevMonth = m;
+  }
+  const grid = cells.map((d) => d
+    ? `<i class="l${level(byDay.get(d) || 0)}" data-d="${d}" title="${esc(parseDay(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}: ${fmtShort(byDay.get(d) || 0)}"></i>`
+    : "<i class=\"pad\"></i>").join("");
+  // days tracked and longest run of consecutive tracked days
+  let tracked = 0, run = 0, best = 0;
+  for (const d of dates) { if ((byDay.get(d) || 0) >= 60) { tracked++; run++; best = Math.max(best, run); } else run = 0; }
+  const chips = [`<button type="button" class="hchip" data-h="all" aria-pressed="${heatFilter === "all"}">All</button>`,
+    ...acts.map((a) => `<button type="button" class="hchip" data-h="${a.id}" style="--c:${a.color}" aria-pressed="${heatFilter == a.id}"><i></i>${esc(a.name)}</button>`)].join("");
+  return `<h2 class="section"><span>Year</span><span class="num">${tracked} days tracked</span></h2>
+    <div class="card heat" style="--c:${act ? act.color : "var(--accent)"}">
+      <div class="hchips">${chips}</div>
+      <div class="hscroll" id="hscroll"><div class="hwrap">
+        <div class="hdays"><span></span><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span></div>
+        <div><div class="hmonths" style="grid-template-columns:repeat(${weeks}, var(--cell))">${months}</div>
+        <div class="hgrid">${grid}</div></div></div></div>
+      <div class="hfoot"><span id="hinfo" class="num">${best >= 2 ? `Longest streak: ${best} days` : "Tap a day for its total"}</span>
+        <span class="hlegend">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</span></div>
+    </div>`;
+}
+function bindHeatmap() {
+  const sc = $("#hscroll");
+  if (sc) sc.scrollLeft = sc.scrollWidth; // most recent weeks first in view
+  $$(".hchip").forEach((b) => b.onclick = () => { heatFilter = b.dataset.h; renderHistory(); });
+  $$(".hgrid i[data-d]").forEach((c) => c.onclick = () => {
+    $$(".hgrid i.sel").forEach((x) => x.classList.remove("sel"));
+    c.classList.add("sel");
+    $("#hinfo").textContent = c.title;
+  });
+}
+
+// ---------- weekly review ----------
+async function openReview(start) {
+  sheet.close();
+  let r;
+  try { r = await api(`/review?tz=${encodeURIComponent(tz)}${start ? `&start=${start}` : ""}`); } catch (e) { return toast(e.message); }
+  const shift = (d, n) => { const x = parseDay(d); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+  const fmtD = (d, o) => parseDay(d).toLocaleDateString(undefined, o);
+  const diff = r.total - r.prevTotal;
+  const delta = (v, p, limit) => {
+    if (!p && !v) return "";
+    if (!p) return `<span class="delta">new</span>`;
+    const d = v - p;
+    if (Math.abs(d) < 60) return `<span class="delta">same</span>`;
+    return `<span class="delta ${(d > 0) === !limit ? "better" : "worse"}">${d > 0 ? "▲" : "▼"} ${fmtShort(Math.abs(d))}</span>`;
+  };
+  const maxDay = Math.max(1, ...r.days.map((d) => d.seconds));
+  const goals = r.activities.filter((a) => a.goal);
+  const goalRow = (a) => {
+    const g = a.goal, limit = a.kind === "limit";
+    const target = `${limit ? "limit" : "goal"} ${fmtShort(g.minutes * 60)} / ${g.period}`;
+    const ok = g.period === "week" ? g.met : g.daysMet === g.days;
+    const text = g.period === "week" ? (g.met ? (limit ? "Stayed under" : "Reached") : (limit ? "Went over" : "Not reached")) : `${g.daysMet} of ${g.days} days`;
+    return `<div class="rvrow" style="--c:${a.color}"><span class="rvname"><i></i>${esc(a.name)}<small>${target}</small></span>
+      <span class="rvval ${ok ? "better" : g.period === "day" && g.daysMet ? "" : "worse"}">${ok ? icon("check", 14) : ""}${text}</span></div>`;
+  };
+  const topStreak = Object.entries(state.streaks || {}).map(([id, s]) => ({ a: state.activities.find((x) => x.id == id), ...s }))
+    .filter((x) => x.a && x.current >= 2).sort((a, b) => b.current - a.current)[0];
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div>
+    <div class="rvhead"><button type="button" class="icon-btn" id="rvprev" aria-label="Previous week">${icon("up", 18)}</button>
+      <h3 tabindex="-1" autofocus>${r.current ? "This week" : "Week of " + fmtD(r.start, { day: "numeric", month: "short" })}<small>${fmtD(r.start, { day: "numeric", month: "short" })} – ${fmtD(r.end, { day: "numeric", month: "short" })}</small></h3>
+      <button type="button" class="icon-btn" id="rvnext" aria-label="Next week" ${r.current ? "disabled" : ""}>${icon("down", 18)}</button></div>
+    <div class="eform review">
+      <div class="rvtotal"><b class="num">${fmtShort(r.total)}</b>${r.prevTotal ? `<span class="delta ${diff >= 0 ? "better" : ""}">${diff >= 0 ? "▲" : "▼"} ${fmtShort(Math.abs(diff))} vs the week before</span>` : "<span class=\"delta\">tracked</span>"}</div>
+      <div class="rvdays">${r.days.map((d) => `<span title="${fmtShort(d.seconds)}"><i style="height:${Math.max(d.seconds ? 4 : 0, (d.seconds / maxDay) * 56)}px"></i>
+        <small>${fmtD(d.date, { weekday: "narrow" })}</small></span>`).join("")}</div>
+      <div class="rvfacts">
+        <span><b class="num">${r.daysTracked}</b> of ${r.daysElapsed} days tracked</span>
+        ${r.bestDay ? `<span>Best day <b>${fmtD(r.bestDay.date, { weekday: "long" })}</b> · ${fmtShort(r.bestDay.seconds)}</span>` : ""}
+        ${topStreak ? `<span>Streak going: <b>${esc(topStreak.a.name)}</b> ${topStreak.current} days${topStreak.a.kind === "limit" ? " under limit" : ""}</span>` : ""}
+      </div>
+      ${r.activities.some((a) => a.seconds) ? `<div class="label">Activities</div>${r.activities.filter((a) => a.seconds || a.prev).map((a) => `
+        <div class="rvrow" style="--c:${a.color}"><span class="rvname"><i></i>${esc(a.name)}</span>
+        <span class="rvval num">${fmtShort(a.seconds)} ${delta(a.seconds, a.prev, a.kind === "limit")}</span></div>`).join("")}` : `<p class="hint">Nothing tracked this week.</p>`}
+      ${goals.length ? `<div class="label">Goals</div>${goals.map(goalRow).join("")}` : ""}
+      <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="rvclose">Close</button></div>
+    </div>`;
+  $("#rvprev").onclick = () => openReview(shift(r.start, -7));
+  $("#rvnext").onclick = () => openReview(shift(r.start, 7));
+  $("#rvclose").onclick = () => editSheet.close();
+  if (!editSheet.open) editSheet.showModal();
+}
+
 function renderHistory() {
-  const html = renderChartCard() + renderCompare() + `
+  const html = reviewCard() + renderChartCard() + renderCompare() + renderHeatmap() + `
     <h2 class="section"><span>Entries</span><button class="linkbtn" id="addentry">${icon("plus", 16)}Add entry</button></h2>
     <div class="search">${icon("search", 18)}<input class="field" id="search" type="search" placeholder="Search notes and activities" value="${esc(searchQ)}" enterkeyhint="search"></div>
     <div id="entrylist"></div>`;
   app.innerHTML = html;
   bindChart();
+  bindHeatmap();
+  $("#openreview").onclick = () => openReview();
   renderEntryList();
   $$(".blk").forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
   $("#addentry").onclick = () => openEntry(null);
@@ -1637,6 +1966,12 @@ $("#restorefile").onchange = async (ev) => {
 
 // live tick
 setInterval(() => {
+  if (signedIn && state.focus) {
+    const left = focusLeft();
+    const fc = $("#focusclock"); if (fc) fc.textContent = fmt(Math.max(0, left));
+    if (left <= 0) advanceFocusNow();
+    if (!state.running) return;
+  }
   if (signedIn && !state.running && state.pause) {
     const left = pauseLeft();
     const pc = $("#pauseclock"); if (pc) pc.textContent = fmt(Math.max(0, left));
@@ -1847,6 +2182,7 @@ const PUSH_PREFS = [
   ["running", "Timer started and stopped", "Shows what you're tracking on the lock screen"],
   ["forgot", "Forgotten timer", "When a timer runs much longer than usual"],
   ["goals", "Goals and limits", "When you reach a goal, or get close to or pass a limit"],
+  ["review", "Weekly review", "Sunday evening: your week in numbers"],
 ];
 async function openNotifications() {
   sheet.close();
@@ -1927,9 +2263,22 @@ async function notify() {
     actions: [{ action: "stop", title: "Stop" }],
   });
 }
-navigator.serviceWorker?.addEventListener("message", (e) => e.data === "reload" && load());
+navigator.serviceWorker?.addEventListener("message", (e) => {
+  if (e.data === "reload") load();
+  else if (e.data?.type === "open") openFromUrl(e.data.url);
+});
+// a notification can point at a screen, e.g. /?review=2026-09-28
+function openFromUrl(url) {
+  const review = new URL(url, location.origin).searchParams.get("review");
+  if (review && signedIn) openReview(/^\d{4}-\d{2}-\d{2}$/.test(review) ? review : undefined);
+}
 
-load().then(() => { if (signedIn) { syncSub(); maybeInstallGuide(); } });
+load().then(() => {
+  if (!signedIn) return;
+  syncSub();
+  if (location.search) { openFromUrl(location.href); history.replaceState(null, "", "/"); }
+  else maybeInstallGuide();
+});
 </script>
 </body>
 </html>

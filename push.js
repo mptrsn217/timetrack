@@ -2,7 +2,7 @@
 // Works on Android/desktop browsers and on iPhone for the Home Screen app (iOS 16.4+).
 import webpush from "web-push";
 
-export const DEFAULT_PREFS = { running: true, forgot: true, goals: true };
+export const DEFAULT_PREFS = { running: true, forgot: true, goals: true, review: true };
 const LIMIT_WARN_SECONDS = 5 * 60;
 let keys = null;
 let q = null;
@@ -84,7 +84,7 @@ export async function sendToUser(uid, payload) {
 }
 
 // send once per key (per user); returns true if this call sent it
-async function sendOnce(uid, key, payload) {
+export async function sendOnce(uid, key, payload) {
   const [row] = await q("INSERT INTO push_log(user_id, key) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING 1 AS ok", [uid, key]);
   if (!row) return false;
   await sendToUser(uid, payload);

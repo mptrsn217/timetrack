@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { OAuth2Client } from "google-auth-library";
-import { initPush, vapidPublicKey, rememberOrigin, sendToUser, notifyRunning, startPushLoop, prefsOf, fmtDur, clockIn } from "./push.js";
+import { initPush, vapidPublicKey, rememberOrigin, sendToUser, notifyRunning, startPushLoop, prefsOf, fmtDur, clockIn, sendOnce } from "./push.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { Pool } = pg;
@@ -83,6 +83,14 @@ await pool.query(`
   -- a break: which activity to resume, and when
   ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_activity_id INT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_until TIMESTAMPTZ;
+  -- focus mode (Pomodoro): current phase ('work' | 'break'), when it ends, which round of how many
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_activity_id INT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_phase TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_ends TIMESTAMPTZ;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_round INT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_rounds INT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_work INT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_break INT;
   -- personal keys for iPhone Shortcuts (only a hash is stored)
   CREATE TABLE IF NOT EXISTS api_tokens (
     id SERIAL PRIMARY KEY,
@@ -222,6 +230,12 @@ app.get("/api/state", h(async (req, res) => {
     [tz, req.uid]
   );
   const stats = running ? await sessionStats(req.uid, running.activity_id, running.id, tz) : null;
+  const [focus] = await q(
+    `SELECT u.focus_activity_id AS activity_id, u.focus_phase AS phase, u.focus_ends AS ends, u.focus_round AS round,
+       u.focus_rounds AS rounds, u.focus_work AS work, u.focus_break AS brk, a.name, a.color
+     FROM users u JOIN activities a ON a.id=u.focus_activity_id WHERE u.id=$1 AND u.focus_phase IS NOT NULL`,
+    [req.uid]
+  );
   const [pause] = await q(
     `SELECT u.pause_activity_id AS activity_id, u.pause_until AS until, a.name, a.color
      FROM users u JOIN activities a ON a.id=u.pause_activity_id WHERE u.id=$1 AND u.pause_until IS NOT NULL`,
@@ -229,7 +243,7 @@ app.get("/api/state", h(async (req, res) => {
   );
   res.json({
     user, activities, running: running || null, stats, totals, pause: pause || null,
-    streaks: await streaks(req.uid, tz, activities), serverNow: new Date().toISOString(),
+    focus: focus || null, streaks: await streaks(req.uid, tz, activities), serverNow: new Date().toISOString(),
   });
 }));
 
@@ -292,7 +306,7 @@ app.post("/api/push/unsubscribe", h(async (req, res) => {
 
 app.put("/api/push/prefs", h(async (req, res) => {
   const prefs = {};
-  for (const k of ["running", "forgot", "goals"]) if (typeof req.body[k] === "boolean") prefs[k] = req.body[k];
+  for (const k of ["running", "forgot", "goals", "review"]) if (typeof req.body[k] === "boolean") prefs[k] = req.body[k];
   const [u] = await q("SELECT notify FROM users WHERE id=$1", [req.uid]);
   const next = { ...prefsOf(u?.notify), ...prefs };
   await q("UPDATE users SET notify=$2 WHERE id=$1", [req.uid, JSON.stringify(next)]);
@@ -372,7 +386,12 @@ async function findActivity(uid, body) {
   const [a] = await q("SELECT id, name FROM activities WHERE user_id=$1 AND NOT archived AND lower(name)=lower($2) LIMIT 1", [uid, name]);
   return a;
 }
-const clearPause = (uid) => q("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_until IS NOT NULL", [uid]);
+const clearFocus = (uid) => q("UPDATE users SET focus_activity_id=NULL, focus_phase=NULL, focus_ends=NULL WHERE id=$1 AND focus_phase IS NOT NULL", [uid]);
+// any manual start/stop replaces a pending break or focus session
+const clearPause = async (uid) => {
+  await q("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_until IS NOT NULL", [uid]);
+  await clearFocus(uid);
+};
 
 async function startActivity(uid, act) {
   await clearPause(uid);
@@ -434,6 +453,7 @@ app.get("/api/status", h(async (req, res) => {
 
 // A break: stop the running entry now, and start the same activity again when the break is over
 app.post("/api/pause", h(async (req, res) => {
+  await clearFocus(req.uid);
   const minutes = Number.isInteger(req.body?.minutes) ? req.body.minutes : 15;
   if (minutes < 1 || minutes > 240) return res.status(400).json({ error: "Pause between 1 and 240 minutes" });
   const [e] = await q(
@@ -486,6 +506,163 @@ app.post("/api/pause/cancel", h(async (req, res) => {
   await clearPause(req.uid);
   res.json({ ok: true });
 }));
+
+// --- focus mode (Pomodoro) ---
+app.post("/api/focus", h(async (req, res) => {
+  const num = (v, d, lo, hi) => { const x = v === undefined ? d : v; return Number.isInteger(x) && x >= lo && x <= hi ? x : null; };
+  const work = num(req.body?.work, 25, 5, 180), brk = num(req.body?.brk, 5, 1, 60), rounds = num(req.body?.rounds, 4, 1, 12);
+  if (!work || !brk || !rounds) return res.status(400).json({ error: "Focus 5–180 min, break 1–60 min, 1–12 rounds" });
+  const [running] = await q("SELECT activity_id FROM entries WHERE user_id=$1 AND stopped_at IS NULL LIMIT 1", [req.uid]);
+  let act = await findActivity(req.uid, req.body);
+  if (!act && running) [act] = await q("SELECT id, name FROM activities WHERE id=$1", [running.activity_id]);
+  if (!act) return res.status(400).json({ error: "Pick an activity to focus on" });
+  if (!running || running.activity_id !== act.id) await startActivity(req.uid, act);
+  else await clearPause(req.uid);
+  const [u] = await q(
+    `UPDATE users SET focus_activity_id=$2, focus_phase='work', focus_round=1, focus_rounds=$3, focus_work=$4, focus_break=$5,
+       focus_ends=now() + make_interval(mins => $4) WHERE id=$1 RETURNING focus_ends, tz`,
+    [req.uid, act.id, rounds, work, brk]
+  );
+  res.json({ ok: true, message: `Focus on ${act.name} until ${clockIn(u.focus_ends, u.tz)}` });
+}));
+
+// Move a focus session to its next phase: when the phase is over (loop / app countdown) or early (skip).
+// The WHERE on the old state makes concurrent callers safe: only one moves it on.
+async function advanceFocus(uid, early) {
+  const [f] = await q(
+    `WITH old AS (SELECT focus_activity_id AS a, focus_phase AS ph, focus_ends AS e, focus_round AS r, focus_rounds AS n,
+                         focus_work AS w, focus_break AS b FROM users
+                  WHERE id=$1 AND focus_phase IS NOT NULL ${early ? "" : "AND focus_ends <= now()"} FOR UPDATE)
+     UPDATE users SET
+       focus_phase = CASE WHEN old.ph='work' AND old.r < old.n THEN 'break' WHEN old.ph='break' THEN 'work' END,
+       focus_round = CASE WHEN old.ph='break' THEN old.r + 1 ELSE old.r END,
+       focus_ends = CASE WHEN old.ph='work' AND old.r < old.n THEN LEAST(now(), old.e) + make_interval(mins => old.b)
+                         WHEN old.ph='break' THEN LEAST(now(), old.e) + make_interval(mins => old.w) END,
+       focus_activity_id = CASE WHEN old.ph='work' AND old.r >= old.n THEN NULL ELSE old.a END
+     FROM old WHERE users.id=$1
+     RETURNING old.a, old.ph, old.e, old.r, old.n, old.w, old.b, users.focus_ends AS next_ends, users.tz`,
+    [uid]
+  );
+  if (!f) return null;
+  const at = new Date(Math.min(Date.now(), new Date(f.e)));
+  const [act] = await q("SELECT id, name FROM activities WHERE id=$1", [f.a]);
+  const name = act?.name || "Focus";
+  let payload;
+  if (f.ph === "work") {
+    await q("UPDATE entries SET stopped_at=GREATEST(started_at, $3::timestamptz) WHERE user_id=$1 AND activity_id=$2 AND stopped_at IS NULL", [uid, f.a, at]);
+    await q("DELETE FROM entries WHERE user_id=$1 AND activity_id=$2 AND stopped_at = started_at", [uid, f.a]); // nothing left of it
+    payload = f.r >= f.n
+      ? { title: "Focus session done", body: `${name}: ${f.n} ${f.n === 1 ? "round" : "rounds"} · ${fmtDur(f.n * f.w * 60)} of focus`, tag: "running" }
+      : { title: `Break · ${f.b} min`, body: `Round ${f.r} of ${f.n} done. ${name} continues at ${clockIn(f.next_ends, f.tz)}`, tag: "running", sticky: true };
+  } else {
+    const [busy] = await q("SELECT 1 FROM entries WHERE user_id=$1 AND stopped_at IS NULL", [uid]);
+    if (!busy) await q("INSERT INTO entries(user_id, activity_id, started_at) VALUES ($1,$2,$3)", [uid, f.a, at]);
+    payload = { title: `Focus · round ${f.r + 1} of ${f.n}`, body: `${name} until ${clockIn(f.next_ends, f.tz)}`, tag: "running", sticky: true,
+      actions: [{ action: "stop", title: "Stop" }] };
+  }
+  await sendToUser(uid, payload).catch((err) => console.warn("push failed:", err.message));
+  return { phase: f.ph, finished: f.ph === "work" && f.r >= f.n };
+}
+
+app.post("/api/focus/skip", h(async (req, res) => res.json({ ok: !!(await advanceFocus(req.uid, true)) })));
+app.post("/api/focus/advance", h(async (req, res) => res.json({ ok: !!(await advanceFocus(req.uid, false)) })));
+app.post("/api/focus/stop", h(async (req, res) => {
+  const [u] = await q("SELECT focus_phase FROM users WHERE id=$1", [req.uid]);
+  const out = u?.focus_phase === "work" ? await stopRunning(req.uid) : (await clearFocus(req.uid), { ok: true, message: "Focus session ended" });
+  res.json(out);
+}));
+
+setInterval(async () => {
+  try {
+    const due = await q("SELECT id FROM users WHERE focus_ends <= now()");
+    for (const u of due) await advanceFocus(u.id, false);
+  } catch (e) { console.warn("focus loop failed:", e.message); }
+}, Number(process.env.PAUSE_TICK_MS) || 15e3);
+
+// --- weekly review ---
+// One week (Mon–Sun, user's time zone) against the week before: totals, goals, best day.
+async function weekReview(uid, tz, start) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start || "")) {
+    [{ start }] = await q("SELECT date_trunc('week', now() AT TIME ZONE $1)::date::text AS start", [tz]);
+  }
+  const rows = await q(
+    `WITH b AS (SELECT gs AS s, gs + interval '1 day' AS e
+                FROM generate_series(($2::date - 7)::timestamp, ($2::date + 6)::timestamp, interval '1 day') gs),
+     en AS (SELECT activity_id, started_at AT TIME ZONE $3 AS s, COALESCE(stopped_at, now()) AT TIME ZONE $3 AS e FROM entries
+            WHERE user_id=$1 AND COALESCE(stopped_at, now()) AT TIME ZONE $3 > ($2::date - 7)::timestamp
+              AND started_at AT TIME ZONE $3 < ($2::date + 7)::timestamp)
+     SELECT b.s::date::text AS d, en.activity_id, SUM(EXTRACT(EPOCH FROM LEAST(en.e, b.e) - GREATEST(en.s, b.s)))::int AS sec
+     FROM b JOIN en ON en.s < b.e AND en.e > b.s GROUP BY 1, 2`,
+    [uid, start, tz]
+  );
+  const [{ today }] = await q("SELECT (now() AT TIME ZONE $1)::date::text AS today", [tz]);
+  const addDay = (d, n) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const days = Array.from({ length: 7 }, (_, i) => addDay(start, i));
+  const elapsed = days.filter((d) => d <= today);
+  const acts = await q("SELECT id, name, color, kind, archived, goal_minutes, goal_period FROM activities WHERE user_id=$1 ORDER BY sort, id", [uid]);
+  const cur = new Map(), prev = new Map(), perDay = new Map(days.map((d) => [d, 0])), actDay = new Map();
+  for (const r of rows) {
+    const inWeek = r.d >= start;
+    (inWeek ? cur : prev).set(r.activity_id, ((inWeek ? cur : prev).get(r.activity_id) || 0) + r.sec);
+    if (inWeek) {
+      perDay.set(r.d, perDay.get(r.d) + r.sec);
+      actDay.set(`${r.activity_id}:${r.d}`, r.sec);
+    }
+  }
+  const list = acts.filter((a) => cur.get(a.id) || (!a.archived && (prev.get(a.id) || a.goal_minutes))).map((a) => {
+    const sec = cur.get(a.id) || 0, before = prev.get(a.id) || 0;
+    let goal = null;
+    if (a.goal_minutes) {
+      const g = a.goal_minutes * 60, limit = a.kind === "limit";
+      if (a.goal_period === "week") goal = { period: "week", minutes: a.goal_minutes, met: limit ? sec <= g : sec >= g };
+      else {
+        const met = elapsed.filter((d) => { const v = actDay.get(`${a.id}:${d}`) || 0; return limit ? v <= g : v >= g; }).length;
+        goal = { period: "day", minutes: a.goal_minutes, daysMet: met, days: elapsed.length };
+      }
+    }
+    return { id: a.id, name: a.name, color: a.color, kind: a.kind, seconds: sec, prev: before, goal };
+  }).sort((x, y) => y.seconds - x.seconds);
+  const total = [...cur.values()].reduce((x, y) => x + y, 0), prevTotal = [...prev.values()].reduce((x, y) => x + y, 0);
+  const best = [...perDay.entries()].sort((x, y) => y[1] - x[1])[0];
+  return {
+    start, end: days[6], current: today <= days[6], days: days.map((d) => ({ date: d, seconds: perDay.get(d) })),
+    total, prevTotal, daysTracked: [...perDay.values()].filter((v) => v >= 60).length, daysElapsed: elapsed.length,
+    bestDay: best && best[1] > 0 ? { date: best[0], seconds: best[1] } : null, activities: list,
+  };
+}
+
+app.get("/api/review", h(async (req, res) => {
+  const tz = validTz(req.query.tz) ? req.query.tz : (await q("SELECT tz FROM users WHERE id=$1", [req.uid]))[0]?.tz || "UTC";
+  res.json(await weekReview(req.uid, tz, req.query.start));
+}));
+
+// Sunday from 19:00 (user's time zone): one "your week" notification per week
+setInterval(async () => {
+  try {
+    const users = await q(
+      `SELECT u.id, u.tz, u.notify FROM users u
+       WHERE u.tz IS NOT NULL AND EXISTS (SELECT 1 FROM push_subscriptions s WHERE s.user_id=u.id)`
+    );
+    for (const u of users) {
+      if (!prefsOf(u.notify).review) continue;
+      const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: u.tz, weekday: "short", hour: "numeric", hourCycle: "h23" })
+        .formatToParts(new Date()).map((p) => [p.type, p.value]));
+      if (parts.weekday !== "Sun" || Number(parts.hour) < 19) continue;
+      const r = await weekReview(u.id, u.tz);
+      if (r.total < 60) continue;
+      const diff = r.total - r.prevTotal;
+      const change = r.prevTotal ? ` (${diff >= 0 ? "▲" : "▼"} ${fmtDur(Math.abs(diff))})` : "";
+      const top = r.activities.filter((a) => a.seconds >= 60).slice(0, 2).map((a) => `${a.name} ${fmtDur(a.seconds)}`).join(" · ");
+      const goals = r.activities.filter((a) => a.goal).map((a) => a.goal.period === "week"
+        ? `${a.name} ${a.goal.met ? "✓" : "✗"}` : `${a.name} ${a.goal.daysMet}/${a.goal.days} days`).slice(0, 3).join(" · ");
+      await sendOnce(u.id, `review:${r.start}`, {
+        title: `Your week: ${fmtDur(r.total)} tracked${change}`,
+        body: [top, goals && `Goals: ${goals}`].filter(Boolean).join("\n") + "\nTap for your weekly review",
+        tag: "review", url: `/?review=${r.start}`, ttl: 12 * 3600,
+      });
+    }
+  } catch (e) { console.warn("review loop failed:", e.message); }
+}, Number(process.env.REVIEW_TICK_MS) || 5 * 60e3);
 
 // breaks end even when no app is open
 setInterval(async () => {
@@ -611,7 +788,7 @@ app.put("/api/entries/:id", h(async (req, res) => {
 app.get("/api/summary", h(async (req, res) => {
   const tz = validTz(req.query.tz) ? req.query.tz : "UTC";
   const bucket = ["day", "week", "month"].includes(req.query.bucket) ? req.query.bucket : "week";
-  const count = Math.min(Math.max(parseInt(req.query.count) || 12, 1), 60);
+  const count = Math.min(Math.max(parseInt(req.query.count) || 12, 1), bucket === "day" ? 371 : 60);
   const step = `1 ${bucket}`;
   const buckets = await q(
     `SELECT gs::date::text AS start FROM generate_series(

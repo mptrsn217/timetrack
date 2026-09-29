@@ -34,5 +34,10 @@ self.addEventListener("notificationclick", (e) => {
     return;
   }
   const url = e.notification.data?.url || "/";
-  e.waitUntil(self.clients.matchAll({ type: "window" }).then((cs) => (cs[0] ? cs[0].focus() : self.clients.openWindow(url))));
+  // an open app is focused and told which screen to show; otherwise open the app at that URL
+  e.waitUntil(self.clients.matchAll({ type: "window" }).then((cs) => {
+    if (!cs[0]) return self.clients.openWindow(url);
+    if (url !== "/") cs[0].postMessage({ type: "open", url });
+    return cs[0].focus();
+  }));
 });
