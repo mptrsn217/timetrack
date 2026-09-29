@@ -1,7 +1,7 @@
 /* ---------- navigation & account ---------- */
 function go(v) {
   view = v;
-  if (v === "history" || (v === "habits" && !habitsData)) {
+  if (v === "history" || v === "overview" || (v === "habits" && !habitsData)) {
     // entries are fetched per visit; don't flash a stale or empty list first
     $$(".tabs button").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
     app.innerHTML = `<div class="empty" style="margin-top:24px">Loading…</div>`;

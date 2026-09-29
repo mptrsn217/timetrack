@@ -51,7 +51,7 @@
 
   .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface);
     border-top: 1px solid var(--line); padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); }
-  .tabs-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
+  .tabs-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
   .tabs button { display: grid; justify-items: center; gap: 2px; padding: 6px 0; color: var(--faint); font-size: 12px; font-weight: 600; }
   .tabs button[aria-current="page"] { color: var(--ink); }
   .tabs button[aria-current="page"] svg { color: var(--accent); }
@@ -588,3 +588,31 @@
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .tile:active, .btn-stop:active { transform: none; }
   }
+
+/* habits page: day switcher on its own card */
+.daybar-nav { padding: 6px 8px; margin-bottom: 4px; }
+/* counter charts */
+.counterchart { padding: 14px; margin-top: 10px; }
+.counterchart .hhead { flex-wrap: wrap; gap: 8px; }
+.seg.small { margin: 0; padding: 2px; }
+.seg.small button { padding: 4px 10px; font-size: 12px; }
+.cchart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.cgrid { stroke: var(--line); stroke-width: 1; }
+.clab { fill: var(--faint); font-size: 9px; font-family: inherit; }
+.ctarget { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 4 3; opacity: .55; }
+.cbarr { fill: var(--c); }
+.cbarr.under { fill: color-mix(in srgb, var(--c) 45%, var(--surface-2)); }
+.cbarr.today { stroke: var(--ink); stroke-width: 1.2; }
+.cdaily { fill: none; stroke: var(--c); stroke-width: 1.2; opacity: .4; stroke-linejoin: round; }
+.cavg { fill: none; stroke: var(--c); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.ccross { stroke: var(--ink); stroke-width: 1; opacity: .35; }
+.chit { fill: transparent; cursor: pointer; }
+.cinfo .linkbtn { margin-left: 6px; font-size: 12px; }
+.clegend { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
+.clg { display: inline-flex; align-items: center; gap: 4px; }
+.clg i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; background: var(--c); }
+.clg i.ld { opacity: .4; height: 2px; }
+.clg i.lb { height: 8px; width: 8px; }
+.clg i.lu { height: 8px; width: 8px; background: color-mix(in srgb, var(--c) 45%, var(--surface-2)); }
+.clg i.lt { background: none; border-top: 2px dashed var(--ink); opacity: .55; height: 0; }
+.hcheck .hrow:first-child { border-top: 0; }

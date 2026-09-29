@@ -20,7 +20,7 @@ async function loadHistoryData() {
   // the year of days for the heatmap changes slowly; refresh it at most every 5 minutes
   if (Date.now() - dayLoadedAt > 5 * 60e3) {
     dayLoadedAt = Date.now();
-    api(`/summary?bucket=day&count=371&tz=${encodeURIComponent(tz)}`).then((d) => { summary.day = d; if (view === "history" && !editing()) renderHistory(); })
+    api(`/summary?bucket=day&count=371&tz=${encodeURIComponent(tz)}`).then((d) => { summary.day = d; if (view === "overview" && !editing()) renderOverview(); })
       .catch(() => (dayLoadedAt = 0));
   }
   const jobs = [api("/entries?days=14"), api(`/summary?bucket=week&count=12&tz=${encodeURIComponent(tz)}`)];
@@ -164,9 +164,9 @@ function bindChart() {
   $$(".seg button").forEach((b) => b.onclick = async () => {
     chartMode = b.dataset.mode;
     try { localStorage.setItem("chartMode", chartMode); } catch {}
-    renderHistory();
+    renderOverview();
     if (chartMode === "months" && !summary.month) {
-      try { summary.month = await api(`/summary?bucket=month&count=12&tz=${encodeURIComponent(tz)}`); renderHistory(); }
+      try { summary.month = await api(`/summary?bucket=month&count=12&tz=${encodeURIComponent(tz)}`); renderOverview(); }
       catch (e) { toast(e.message); }
     }
   });
@@ -264,7 +264,7 @@ function renderHeatmap() {
   for (const d of dates) { if ((byDay.get(d) || 0) >= 60) { tracked++; run++; best = Math.max(best, run); } else run = 0; }
   const chips = [`<button type="button" class="hchip" data-h="all" aria-pressed="${heatFilter === "all"}">All</button>`,
     ...acts.map((a) => `<button type="button" class="hchip" data-h="${a.id}" style="--c:${a.color}" aria-pressed="${heatFilter == a.id}"><i></i>${esc(a.name)}</button>`)].join("");
-  return `<h2 class="section"><span>Year</span><span class="num">${tracked} days tracked</span></h2>
+  return `<h2 class="section"><span>Time, year</span><span class="num">${tracked} days tracked</span></h2>
     <div class="card heat" style="--c:${act ? act.color : "var(--accent)"}">
       <div class="hchips">${chips}</div>
       <div class="hscroll" id="hscroll"><div class="hwrap">
@@ -278,7 +278,7 @@ function renderHeatmap() {
 function bindHeatmap() {
   const sc = $("#hscroll");
   if (sc) sc.scrollLeft = sc.scrollWidth; // most recent weeks first in view
-  $$(".hchip").forEach((b) => b.onclick = () => { heatFilter = b.dataset.h; renderHistory(); });
+  $$(".hchip").forEach((b) => b.onclick = () => { heatFilter = b.dataset.h; renderOverview(); });
   $$(".hgrid i[data-d]").forEach((c) => c.onclick = () => {
     $$(".hgrid i.sel").forEach((x) => x.classList.remove("sel"));
     c.classList.add("sel");
@@ -338,17 +338,24 @@ async function openReview(start) {
   if (!editSheet.open) editSheet.showModal();
 }
 
+// Overview: everything for looking back (time, habits, counters, connections)
+function renderOverview() {
+  app.innerHTML = reviewCard() + renderChartCard() + renderCompare() + renderHeatmap() + habitsOverviewHTML();
+  bindChart();
+  bindHeatmap();
+  bindHabitCards();
+  $("#openreview").onclick = () => openReview();
+  $$(".blk").forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
+}
+
+// History: the list of tracked entries
 function renderHistory() {
-  const html = reviewCard() + renderChartCard() + renderCompare() + renderHeatmap() + `
+  const html = `
     <h2 class="section"><span>Entries</span><button class="linkbtn" id="addentry">${icon("plus", 16)}Add entry</button></h2>
     <div class="search">${icon("search", 18)}<input class="field" id="search" type="search" placeholder="Search notes and activities" value="${esc(searchQ)}" enterkeyhint="search"></div>
     <div id="entrylist"></div>`;
   app.innerHTML = html;
-  bindChart();
-  bindHeatmap();
-  $("#openreview").onclick = () => openReview();
   renderEntryList();
-  $$(".blk").forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
   $("#addentry").onclick = () => openEntry(null);
   let t;
   $("#search").oninput = (ev) => {

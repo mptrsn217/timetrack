@@ -82,59 +82,48 @@ function insightsHTML() {
     }).join("")}</div>`;
 }
 
+// redraw whichever page shows habit data, keeping the scroll position
+function rerenderHabits() {
+  const y = window.scrollY;
+  if (view === "overview") renderOverview(); else renderHabits();
+  window.scrollTo(0, y);
+}
+
+// ---------- Habits page: today's check-in, yes/no and counters in separate cards ----------
 function renderHabits() {
   if (!habitsData) { app.innerHTML = `<div class="empty" style="margin-top:24px">Loading…</div>`; return; }
   const { habits, today } = habitsData;
   if (!hDay || hDay > today) hDay = today;
   const dayLabel = hDay === today ? "Today" : hDay === shiftDay(today, -1) ? "Yesterday"
     : parseDay(hDay).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-  const check = habits.length ? `<section class="card hcheck">
-      <div class="hdaynav"><button class="icon-btn" id="hprev" aria-label="Previous day">${icon("up", 18)}</button>
-        <b>${dayLabel}</b><button class="icon-btn" id="hnext" aria-label="Next day" ${hDay >= today ? "disabled" : ""}>${icon("down", 18)}</button></div>
-      ${habits.map((h) => {
-        if (h.kind === "count") {
-          const n = countOf(h.id, hDay), pct = h.target ? Math.min(1, n / h.target) : 0;
-          return `<div class="hrow count" data-hold="${h.id}" style="--c:${h.color}">
-            <span class="hq"><i></i>${esc(h.name)}${h.target ? `<small class="num">${n >= h.target ? "target reached · " : ""}${n} / ${h.target}</small>` : ""}</span>
-            <span class="cnt">
-              <button type="button" data-cadd="${h.id}" data-d="${-h.step}" aria-label="Minus ${h.step}" ${n ? "" : "disabled"}>−${h.step > 1 ? h.step : ""}</button>
-              <button type="button" class="cval num" data-cset="${h.id}" aria-label="Set ${esc(h.name)}">${n}</button>
-              <button type="button" class="plus" data-cadd="${h.id}" data-d="${h.step}">+${h.step}</button>
-              <button type="button" class="plus" data-cadd="${h.id}" data-d="${h.step * 5}">+${h.step * 5}</button></span>
-            ${h.target ? `<span class="cbar"><i style="width:${pct * 100}%"></i></span>` : ""}</div>`;
-        }
-        const v = markOf(h.id, hDay);
-        return `<div class="hrow" data-hold="${h.id}" style="--c:${h.color}"><span class="hq"><i></i>${esc(h.name)}?${h.kind === "avoid" ? ` <span class="kindtag">Avoid</span>` : ""}</span>
-          <span class="yn"><button type="button" data-mark="${h.id}" data-v="true" aria-pressed="${v === true}" class="${h.kind === "avoid" ? "bad" : "good"}">Yes</button>
-          <button type="button" data-mark="${h.id}" data-v="false" aria-pressed="${v === false}" class="${h.kind === "avoid" ? "good" : "bad"}">No</button></span></div>`;
-      }).join("")}
-    </section>` : `<section class="card hcheck empty-h"><b>Track yes/no habits</b>
-      <p class="hint" style="margin:4px 0 0">One tap a day: did you do it? See every day of the year as a heatmap. Tap <b>New habit</b> to add one.</p></section>`;
-  const dates = Array.from({ length: 371 }, (_, i) => shiftDay(today, i - 370));
-  const cards = habits.map((h) => {
-    if (h.kind === "count") return countCard(h, dates, today);
-    const st = habitStats(h);
-    const grid = yearGrid(dates, (d) => {
-      const v = st.map.get(d);
-      const cls = v === undefined ? "hk-none" : goodDay(h, v) ? "hk-ok" : "hk-bad";
-      const txt = v === undefined ? "not logged" : v ? "yes" : "no";
-      return `<i class="${cls}${d === today ? " today" : ""}" data-hday="${d}" data-habit="${h.id}" title="${esc(parseDay(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}: ${txt}"></i>`;
-    });
-    return `<section class="card heat habitcard" data-hold="${h.id}" style="--c:${h.color}">
-      <div class="hhead"><span class="hq"><i></i>${esc(h.name)}${h.kind === "avoid" ? ` <span class="kindtag">Avoid</span>` : ""}</span>
-        <button class="icon-btn" data-edithabit="${h.id}" aria-label="Edit habit">${icon("more", 18)}</button></div>
-      <div class="hstats num"><span><b>${st.current}</b> day streak</span><span>best <b>${st.best}</b></span><span><b>${st.good}</b> of last 30 days${h.kind === "avoid" ? " clean" : ""}</span></div>
-      ${grid}
-      <div class="hfoot"><span class="hinfo num">Tap a day to change it</span>
-        <span class="hlegend">${h.kind === "avoid" ? "Didn't" : "Did"} <i class="hk-ok"></i> ${h.kind === "avoid" ? "Did" : "Didn't"} <i class="hk-bad"></i> Not logged <i class="hk-none"></i></span></div>
-    </section>`;
-  }).join("");
+  const binary = habits.filter((h) => h.kind !== "count"), counters = habits.filter((h) => h.kind === "count");
+  const yesNoRow = (h) => {
+    const v = markOf(h.id, hDay);
+    return `<div class="hrow" data-hold="${h.id}" style="--c:${h.color}"><span class="hq"><i></i>${esc(h.name)}?${h.kind === "avoid" ? ` <span class="kindtag">Avoid</span>` : ""}</span>
+      <span class="yn"><button type="button" data-mark="${h.id}" data-v="true" aria-pressed="${v === true}" class="${h.kind === "avoid" ? "bad" : "good"}">Yes</button>
+      <button type="button" data-mark="${h.id}" data-v="false" aria-pressed="${v === false}" class="${h.kind === "avoid" ? "good" : "bad"}">No</button></span></div>`;
+  };
+  const counterRow = (h) => {
+    const n = countOf(h.id, hDay), pct = h.target ? Math.min(1, n / h.target) : 0;
+    return `<div class="hrow count" data-hold="${h.id}" style="--c:${h.color}">
+      <span class="hq"><i></i>${esc(h.name)}${h.target ? `<small class="num">${n >= h.target ? "target reached · " : ""}${n} / ${h.target}</small>` : ""}</span>
+      <span class="cnt">
+        <button type="button" data-cadd="${h.id}" data-d="${-h.step}" aria-label="Minus ${h.step}" ${n ? "" : "disabled"}>−${h.step > 1 ? h.step : ""}</button>
+        <button type="button" class="cval num" data-cset="${h.id}" aria-label="Set ${esc(h.name)}">${n}</button>
+        <button type="button" class="plus" data-cadd="${h.id}" data-d="${h.step}">+${h.step}</button>
+        <button type="button" class="plus" data-cadd="${h.id}" data-d="${h.step * 5}">+${h.step * 5}</button></span>
+      ${h.target ? `<span class="cbar"><i style="width:${pct * 100}%"></i></span>` : ""}</div>`;
+  };
+  const dayNav = `<div class="card hdaynav daybar-nav"><button class="icon-btn" id="hprev" aria-label="Previous day">${icon("up", 18)}</button>
+    <b>${dayLabel}</b><button class="icon-btn" id="hnext" aria-label="Next day" ${hDay >= today ? "disabled" : ""}>${icon("down", 18)}</button></div>`;
   app.innerHTML = `<h2 class="section"><span>Check in</span><button class="linkbtn" id="newhabit">${icon("plus", 16)}New habit</button></h2>
-    ${check}${habits.length ? `<p class="hint holdhint">Press and hold a habit to edit or reorder it</p>` : ""}
-    ${insightsHTML()}
-    ${habits.length ? `<h2 class="section"><span>Year</span><span></span></h2>${cards}` : ""}`;
+    ${habits.length ? dayNav : `<section class="card hcheck empty-h"><b>Habits and counters</b>
+      <p class="hint" style="margin:4px 0 0">Yes/no questions like "Ate sugar?", or counters like pushups. Tap <b>New habit</b> to add one;
+      their heatmaps and charts appear under Overview.</p></section>`}
+    ${binary.length ? `<h2 class="section"><span>Yes / No</span><span></span></h2><section class="card hcheck">${binary.map(yesNoRow).join("")}</section>` : ""}
+    ${counters.length ? `<h2 class="section"><span>Counters</span><span></span></h2><section class="card hcheck">${counters.map(counterRow).join("")}</section>` : ""}
+    ${habits.length ? `<p class="hint holdhint">Press and hold a habit to edit or reorder it · heatmaps and charts are in Overview</p>` : ""}`;
 
-  $$(".hscroll", app).forEach((sc) => (sc.scrollLeft = sc.scrollWidth));
   $("#newhabit").onclick = () => openHabit();
   $("#hprev")?.addEventListener("click", () => { hDay = shiftDay(hDay, -1); renderHabits(); });
   $("#hnext")?.addEventListener("click", () => { hDay = shiftDay(hDay, 1); renderHabits(); });
@@ -142,44 +131,122 @@ function renderHabits() {
     const v = b.dataset.v === "true";
     setMark(Number(b.dataset.mark), hDay, markOf(Number(b.dataset.mark), hDay) === v ? null : v);
   });
-  // heatmap cells cycle: not logged → yes → no → not logged
-  $$("[data-hday]").forEach((c) => c.onclick = () => {
-    const id = Number(c.dataset.habit), d = c.dataset.hday, v = markOf(id, d);
-    const next = v === undefined ? true : v === true ? false : null;
-    setMark(id, d, next, true);
-  });
-  $$("[data-edithabit]").forEach((b) => b.onclick = () => openHabit(habitsData.habits.find((h) => h.id == b.dataset.edithabit)));
   $$("[data-hold]").forEach((el) => onHold(el, () => openHabit(habitsData.habits.find((h) => h.id == el.dataset.hold))));
   $$("[data-cadd]").forEach((b) => b.onclick = async () => {
     pendingAdds++;
     try { await addCount(Number(b.dataset.cadd), hDay, Number(b.dataset.d)); } finally { pendingAdds--; }
   });
   $$("[data-cset]").forEach((b) => b.onclick = () => openCountEdit(habitsData.habits.find((h) => h.id == b.dataset.cset), hDay));
-  $$("[data-cday]").forEach((c) => c.onclick = () => openCountEdit(habitsData.habits.find((h) => h.id == c.dataset.habit), c.dataset.cday));
 }
+
+// ---------- Overview: a year heatmap per yes/no habit ----------
+function habitYearCard(h, dates, today) {
+  const st = habitStats(h);
+  const grid = yearGrid(dates, (d) => {
+    const v = st.map.get(d);
+    const cls = v === undefined ? "hk-none" : goodDay(h, v) ? "hk-ok" : "hk-bad";
+    const txt = v === undefined ? "not logged" : v ? "yes" : "no";
+    return `<i class="${cls}${d === today ? " today" : ""}" data-hday="${d}" data-habit="${h.id}" title="${esc(parseDay(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}: ${txt}"></i>`;
+  });
+  return `<section class="card heat habitcard" data-hold="${h.id}" style="--c:${h.color}">
+    <div class="hhead"><span class="hq"><i></i>${esc(h.name)}${h.kind === "avoid" ? ` <span class="kindtag">Avoid</span>` : ""}</span>
+      <button class="icon-btn" data-edithabit="${h.id}" aria-label="Edit habit">${icon("more", 18)}</button></div>
+    <div class="hstats num"><span><b>${st.current}</b> day streak</span><span>best <b>${st.best}</b></span><span><b>${st.good}</b> of last 30 days${h.kind === "avoid" ? " clean" : ""}</span></div>
+    ${grid}
+    <div class="hfoot"><span class="hinfo num">Tap a day to change it</span>
+      <span class="hlegend">${h.kind === "avoid" ? "Didn't" : "Did"} <i class="hk-ok"></i> ${h.kind === "avoid" ? "Did" : "Didn't"} <i class="hk-bad"></i> Not logged <i class="hk-none"></i></span></div>
+  </section>`;
+}
+
+// ---------- Overview: counters as day-by-day columns (30 days) or a line (90 days) ----------
+const counterMode = {};
+const niceTop = (v) => { const p = 10 ** Math.floor(Math.log10(Math.max(1, v))); return [1, 2, 2.5, 5, 10].map((m) => m * p).find((x) => x >= v); };
+function counterChartCard(h) {
+  const st = countStats(h), today = habitsData.today, mode = counterMode[h.id] || "bars";
+  const n = mode === "bars" ? 30 : 90;
+  const days = Array.from({ length: n }, (_, i) => shiftDay(today, i - (n - 1)));
+  const vals = days.map((d) => st.map.get(d) || 0);
+  const avg7 = vals.map((_, i) => { const w = vals.slice(Math.max(0, i - 6), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
+  const W = 320, H = 132, L = 30, R = 6, T = 8, B = 20;
+  const top = niceTop(Math.max(1, h.target || 0, ...vals));
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  const step = (W - L - R) / n, x = (i) => L + (i + 0.5) * step;
+  const grid = [0, top / 2, top].map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="cgrid"/>
+    <text x="${L - 5}" y="${y(v) + 3.5}" class="clab" text-anchor="end">${Number.isInteger(v) ? v : v.toFixed(1)}</text>`).join("");
+  const target = h.target ? `<line x1="${L}" x2="${W - R}" y1="${y(h.target)}" y2="${y(h.target)}" class="ctarget"/>` : "";
+  let marks;
+  if (mode === "bars") {
+    const bw = Math.max(2, step - 2);
+    marks = vals.map((v, i) => v ? `<rect x="${x(i) - bw / 2}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" rx="2"
+      class="cbarr${h.target && v < h.target ? " under" : ""}${days[i] === today ? " today" : ""}"/>` : "").join("");
+  } else {
+    const pts = (arr) => arr.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    marks = `<polyline points="${pts(vals)}" class="cdaily"/><polyline points="${pts(avg7)}" class="cavg"/>`;
+  }
+  const lab = (i, anchor) => `<text x="${x(i)}" y="${H - 5}" class="clab" text-anchor="${anchor}">${i === n - 1 ? "Today" : parseDay(days[i]).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</text>`;
+  const hits = days.map((d, i) => `<rect x="${L + i * step}" y="${T}" width="${step}" height="${H - T - B}" class="chit" data-ci="${i}"/>`).join("");
+  const legend = mode === "line"
+    ? `<span class="clg"><i class="ld"></i>Daily</span><span class="clg"><i class="la"></i>7-day average</span>${h.target ? `<span class="clg"><i class="lt"></i>Target ${h.target}</span>` : ""}`
+    : h.target ? `<span class="clg"><i class="lb"></i>Target reached</span><span class="clg"><i class="lu"></i>Below</span><span class="clg"><i class="lt"></i>Target ${h.target}</span>` : "";
+  return `<section class="card counterchart" data-hold="${h.id}" data-counter="${h.id}" style="--c:${h.color}">
+    <div class="hhead"><span class="hq"><i></i>${esc(h.name)} <span class="kindtag">${h.target ? `${h.target}/day` : "Count"}</span></span>
+      <div class="seg small" role="tablist"><button data-cmode="bars" aria-selected="${mode === "bars"}">30 days</button><button data-cmode="line" aria-selected="${mode === "line"}">90 days</button></div></div>
+    <div class="hstats num"><span>today <b>${st.today}</b></span><span>this week <b>${st.week}</b></span><span>7-day avg <b>${st.avg7}</b></span>
+      <span>best day <b>${st.bestDay}</b></span><span><b>${st.current}</b> day streak</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="cchart" role="img" aria-label="${esc(h.name)}, last ${n} days">${grid}${target}${marks}
+      <line class="ccross" x1="0" x2="0" y1="${T}" y2="${H - B}" style="display:none"/>${lab(0, "start")}${lab(Math.floor(n / 2), "middle")}${lab(n - 1, "end")}${hits}</svg>
+    <div class="hfoot"><span class="hinfo num cinfo">Tap a day to see it</span><span class="clegend">${legend}</span></div>
+  </section>`;
+}
+function bindCounterCharts() {
+  $$(".counterchart").forEach((card) => {
+    const h = habitsData.habits.find((x) => x.id == card.dataset.counter);
+    const mode = counterMode[h.id] || "bars", n = mode === "bars" ? 30 : 90, today = habitsData.today;
+    const days = Array.from({ length: n }, (_, i) => shiftDay(today, i - (n - 1)));
+    const st = countStats(h), vals = days.map((d) => st.map.get(d) || 0);
+    $$("[data-cmode]", card).forEach((b) => b.onclick = () => { counterMode[h.id] = b.dataset.cmode; rerenderHabits(); });
+    const info = $(".cinfo", card), cross = $(".ccross", card);
+    const show = (i) => {
+      const w = vals.slice(Math.max(0, i - 6), i + 1), avg = Math.round(w.reduce((a, b) => a + b, 0) / w.length);
+      info.innerHTML = `${parseDay(days[i]).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}: <b>${vals[i]}</b>${mode === "line" ? ` · 7-day avg ${avg}` : ""}
+        <button class="linkbtn" data-cedit="${days[i]}">Change</button>`;
+      const r = $(`[data-ci="${i}"]`, card);
+      cross.setAttribute("x1", +r.getAttribute("x") + +r.getAttribute("width") / 2);
+      cross.setAttribute("x2", cross.getAttribute("x1"));
+      cross.style.display = "";
+      $("[data-cedit]", info).onclick = () => openCountEdit(h, days[i]);
+    };
+    $$("[data-ci]", card).forEach((r) => {
+      r.onclick = () => show(+r.dataset.ci);
+      r.onpointerenter = (e) => { if (e.pointerType === "mouse") show(+r.dataset.ci); };
+    });
+  });
+}
+function bindHabitCards() {
+  $$(".habitcard .hscroll").forEach((sc) => (sc.scrollLeft = sc.scrollWidth));
+  // heatmap cells cycle: not logged → yes → no → not logged
+  $$("[data-hday]").forEach((c) => c.onclick = () => {
+    const id = Number(c.dataset.habit), d = c.dataset.hday, v = markOf(id, d);
+    setMark(id, d, v === undefined ? true : v === true ? false : null, true);
+  });
+  $$("[data-edithabit]").forEach((b) => b.onclick = () => openHabit(habitsData.habits.find((h) => h.id == b.dataset.edithabit)));
+  $$(".habitcard[data-hold], .counterchart[data-hold]").forEach((el) => onHold(el, () => openHabit(habitsData.habits.find((h) => h.id == el.dataset.hold))));
+  bindCounterCharts();
+}
+function habitsOverviewHTML() {
+  if (!habitsData?.habits.length) return "";
+  const today = habitsData.today;
+  const dates = Array.from({ length: 371 }, (_, i) => shiftDay(today, i - 370));
+  const binary = habitsData.habits.filter((h) => h.kind !== "count"), counters = habitsData.habits.filter((h) => h.kind === "count");
+  return `${binary.length ? `<h2 class="section"><span>Habits</span><span></span></h2>${binary.map((h) => habitYearCard(h, dates, today)).join("")}` : ""}
+    ${counters.length ? `<h2 class="section"><span>Counters</span><span></span></h2>${counters.map(counterChartCard).join("")}` : ""}
+    ${insightsHTML()}`;
+}
+
 const nextHabitColor = () => {
   const used = new Set((habitsData?.habits || []).map((h) => h.color.toLowerCase()));
   return PALETTE.find((c) => !used.has(c)) || PALETTE[(habitsData?.habits.length || 0) % PALETTE.length];
 };
-
-function countCard(h, dates, today) {
-  const st = countStats(h);
-  const max = Math.max(1, st.bestDay);
-  const level = (n) => (!n ? 0 : h.target ? (n >= h.target ? 4 : Math.min(3, 1 + Math.floor((n / h.target) * 3))) : Math.min(4, Math.ceil((n / max) * 4)));
-  const grid = yearGrid(dates, (d) => {
-    const n = st.map.get(d) || 0;
-    return `<i class="l${level(n)}${d === today ? " today" : ""}" data-cday="${d}" data-habit="${h.id}" title="${esc(parseDay(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}: ${n}"></i>`;
-  });
-  return `<section class="card heat habitcard" data-hold="${h.id}" style="--c:${h.color}">
-    <div class="hhead"><span class="hq"><i></i>${esc(h.name)} <span class="kindtag">${h.target ? `${h.target}/day` : "Count"}</span></span>
-      <button class="icon-btn" data-edithabit="${h.id}" aria-label="Edit">${icon("more", 18)}</button></div>
-    <div class="hstats num"><span><b>${st.current}</b> day streak${h.target ? "" : " (any)"}</span><span>best <b>${st.best}</b></span>
-      <span>this week <b>${st.week}</b></span><span>best day <b>${st.bestDay}</b></span><span>7-day avg <b>${st.avg7}</b></span></div>
-    ${grid}
-    <div class="hfoot"><span class="hinfo num">Tap a day to change it</span>
-      <span class="hlegend">Less <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> ${h.target ? "Target" : "More"}</span></div>
-  </section>`;
-}
 
 // counters: optimistic too; the server's number wins
 async function addCount(id, day, delta) {
@@ -187,15 +254,15 @@ async function addCount(id, day, delta) {
   const before = c?.count || 0;
   const next = Math.max(0, before + delta);
   if (c) c.count = next; else habitsData.counts.push({ habit_id: id, day, count: next });
-  const y = window.scrollY; renderHabits(); window.scrollTo(0, y);
+  rerenderHabits();
   const h = habitsData.habits.find((x) => x.id === id);
   if (h.target && before < h.target && next >= h.target) toast(`${h.name}: target reached!`);
   try {
     const out = await api(`/habits/${id}/add`, { method: "POST", body: { day, delta } });
     const cc = habitsData.counts.find((x) => x.habit_id === id && x.day === day);
     // only the last of several quick taps syncs, so the number doesn't jump back mid-burst
-    if (!out.queued && cc && cc.count !== out.count && pendingAdds === 1) { cc.count = out.count; renderHabits(); window.scrollTo(0, y); }
-  } catch (e) { toast(e.message); habitsData = await api(`/habits?tz=${encodeURIComponent(tz)}`); renderHabits(); }
+    if (!out.queued && cc && cc.count !== out.count && pendingAdds === 1) { cc.count = out.count; rerenderHabits(); }
+  } catch (e) { toast(e.message); habitsData = await api(`/habits?tz=${encodeURIComponent(tz)}`); rerenderHabits(); }
 }
 let pendingAdds = 0;
 function openCountEdit(h, day) {
@@ -215,7 +282,7 @@ function openCountEdit(h, day) {
       habitsData.counts = habitsData.counts.filter((c) => !(c.habit_id === h.id && c.day === day));
       if (count) habitsData.counts.push({ habit_id: h.id, day, count });
       editSheet.close();
-      const y = window.scrollY; renderHabits(); window.scrollTo(0, y);
+      rerenderHabits();
     } catch (e) { toast(e.message); }
   };
   f.onsubmit = (ev) => { ev.preventDefault(); const v = Math.floor(Number(f.n.value) || 0); if (v < 0) return toast("Can't be negative"); save(v); };
@@ -229,15 +296,13 @@ async function setMark(id, day, value, announce) {
   const before = habitsData.marks.slice();
   habitsData.marks = habitsData.marks.filter((m) => !(m.habit_id === id && m.day === day));
   if (value !== null) habitsData.marks.push({ habit_id: id, day, value });
-  const y = window.scrollY;
-  renderHabits();
-  window.scrollTo(0, y);
+  rerenderHabits();
   if (announce) {
     const h = habitsData.habits.find((x) => x.id === id);
     toast(`${h.name}, ${parseDay(day).toLocaleDateString(undefined, { day: "numeric", month: "short" })}: ${value === null ? "cleared" : value ? "yes" : "no"}`);
   }
   try { await api(`/habits/${id}/marks`, { method: "PUT", body: { day, value } }); }
-  catch (e) { habitsData.marks = before; renderHabits(); toast(e.message); }
+  catch (e) { habitsData.marks = before; rerenderHabits(); toast(e.message); }
 }
 
 function openHabit(h) {
@@ -282,7 +347,7 @@ function openHabit(h) {
       try {
         await moveInList(list, h.id, dir, "/habits");
         habitsData = await api(`/habits?tz=${encodeURIComponent(tz)}`);
-        renderHabits();
+        rerenderHabits();
         openHabit(habitsData.habits.find((x) => x.id === h.id));
       } catch (e) { toast(e.message); }
     };

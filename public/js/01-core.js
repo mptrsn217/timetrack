@@ -135,9 +135,9 @@ async function load({ background = false } = {}) {
     if (fresh) { offset = new Date(s.serverNow) - Date.now(); loadedAt = Date.now(); }
     state = s;
     signedIn = true;
-    if (view === "history") await loadHistoryData();
-    if (view === "habits") {
-      try { habitsData = await api(`/habits?tz=${encodeURIComponent(tz)}`); cacheSet("habits", habitsData); await loadInsights(); }
+    if (view === "history" || view === "overview") await loadHistoryData();
+    if (view === "habits" || view === "overview") {
+      try { habitsData = await api(`/habits?tz=${encodeURIComponent(tz)}`); cacheSet("habits", habitsData); if (view === "overview") await loadInsights(); }
       catch (e) { if (!e.offline) throw e; if (!habitsData) habitsData = cacheGet("habits"); }
     }
     // never redraw under someone's fingers: a background refresh would wipe what they are typing
@@ -156,6 +156,7 @@ function render() {
   renderAvatar($("#me"));
   if (view === "track") renderTrack();
   else if (view === "habits") renderHabits();
+  else if (view === "overview") renderOverview();
   else renderHistory();
 }
 

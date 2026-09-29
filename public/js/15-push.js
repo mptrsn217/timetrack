@@ -126,7 +126,7 @@ function openFromUrl(url) {
   const review = new URL(url, location.origin).searchParams.get("review");
   if (review && signedIn) openReview(/^\d{4}-\d{2}-\d{2}$/.test(review) ? review : undefined);
   const v = new URL(url, location.origin).searchParams.get("view");
-  if (signedIn && ["track", "history", "habits"].includes(v)) go(v);
+  if (signedIn && ["track", "habits", "overview", "history"].includes(v)) go(v);
 }
 
 flushOutbox();
