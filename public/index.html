@@ -86,6 +86,15 @@
   .goal .gmark { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .55; }
   .goal .gsub { color: var(--muted); font-size: 13px; }
   .goal .gl1.rec span:first-child { color: var(--c); }
+  .goal .gl1.warn span:first-child { color: var(--danger); display: inline-flex; align-items: center; gap: 6px; }
+  .kindtag { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface-2); padding: 2px 7px; border-radius: 99px;
+    margin-left: 8px; vertical-align: middle; }
+  .tile .top-l { display: flex; align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 7px 12px; border-radius: 99px;
+    font-size: 13px; font-weight: 600; color: var(--muted); background: var(--surface-2); }
+  .chip[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+  .editrow .name-col { display: grid; gap: 2px; min-width: 0; }
+  .editrow .chip { margin: 0 0 4px 10px; justify-self: start; padding: 4px 10px; font-size: 12px; }
 
   .daybar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin-top: 16px; gap: 2px; }
   .daybar span { background: var(--c); min-width: 3px; }
@@ -269,6 +278,7 @@
   <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v4M12 17.5h.01"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -317,6 +327,7 @@ let state = { activities: [], running: null, totals: [], user: null };
 let view = "track";
 let offset = 0; // serverNow - clientNow ms
 let entries = [];
+let newKind = "good";
 let newColor = null; // user-picked color for the next activity; null = next unused palette slot
 
 async function api(path, opts = {}) {
@@ -421,9 +432,13 @@ async function onGoogle({ credential }) {
 
 /* ---------- track ---------- */
 // progress of the running session: first toward the usual (average) length, then toward the record
+const daysSince = (d) => Math.round((dayStart(new Date()) - dayStart(new Date(d))) / 864e5);
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
 function goalHTML() {
   const st = state.stats, r = state.running;
   if (!st || !r) return "";
+  if (state.activities.find((a) => a.id === r.activity_id)?.kind === "limit") return limitGoalHTML(st, r);
   const el = runSec();
   const left = (sec) => (sec < 60 ? `${Math.ceil(sec)}s` : fmtShort(sec + 59));
   const streak = st.streak >= 2 ? `<span class="streak">${st.streak}-day streak</span>` : "";
@@ -450,6 +465,49 @@ function goalHTML() {
     <div class="gbar" role="progressbar" aria-valuenow="${Math.round(pct * 100)}" aria-valuemin="0" aria-valuemax="100">
       <div class="gfill" style="width:${pct * 100}%"></div>${mark}</div>
     <div class="gsub num">${sub}</div>`;
+}
+
+// habits to cut back: shorter is better, so warn past the usual length instead of cheering toward a record
+function limitGoalHTML(st, r) {
+  const el = runSec();
+  const left = (sec) => (sec < 60 ? `${Math.ceil(sec)}s` : fmtShort(sec + 59));
+  const gap = st.prev_end ? daysSince(st.prev_end) : 0;
+  const badge = gap >= 1 ? `<span class="streak">First in ${plural(gap, "day")}</span>` : "";
+  if (!st.sessions) {
+    return `<div class="gl1"><span>First ${esc(r.name)} session tracked</span>${badge}</div>
+      <div class="gsub">Your usual length starts from this one.</div>`;
+  }
+  let head, pct, mark = "", sub, warn = false;
+  if (el < st.avg) {
+    head = `${left(st.avg - el)} until your usual ${fmtShort(st.avg)}`;
+    pct = el / st.avg;
+    sub = "Stop before then to beat your average";
+  } else if (el < st.max) {
+    head = `Over your usual by ${fmtShort(el - st.avg) === "0m" ? "under 1m" : fmtShort(el - st.avg)}`;
+    pct = el / st.max;
+    mark = `<span class="gmark" style="left:${(st.avg / st.max) * 100}%" title="Usual"></span>`;
+    sub = `Longest so far ${fmtShort(st.max)}`;
+    warn = true;
+  } else {
+    head = "Longest session so far";
+    pct = 1;
+    sub = `Previous longest ${fmtShort(st.max)} · ${fmtShort(el - st.max)} longer`;
+    warn = true;
+  }
+  return `<div class="gl1 ${warn ? "warn" : ""}"><span>${warn ? icon("alert", 16) : ""}${head}</span>${badge}</div>
+    <div class="gbar" role="progressbar" aria-valuenow="${Math.round(pct * 100)}" aria-valuemin="0" aria-valuemax="100">
+      <div class="gfill" style="width:${pct * 100}%"></div>${mark}</div>
+    <div class="gsub num">${sub}</div>`;
+}
+
+function tileSub(a) {
+  const today = total(a.id, "today");
+  if (a.kind === "limit" && !today) {
+    if (!a.last_at) return "Not tracked yet";
+    const n = daysSince(a.last_at);
+    if (n >= 1) return `${plural(n, "day")} free`;
+  }
+  return `${fmtShort(today)} today`;
 }
 
 function renderTrack() {
@@ -481,9 +539,9 @@ function renderTrack() {
          const on = r && r.activity_id === a.id;
          return `<button class="tile ${on ? "on" : ""}" data-id="${a.id}" style="--c:${a.color}" aria-pressed="${!!on}">
            <span class="play">${icon(on ? "stop" : "play", 14)}</span>
-           <span class="dot"></span>
+           <span class="top-l"><span class="dot"></span>${a.kind === "limit" ? `<span class="kindtag">Cut back</span>` : ""}</span>
            <span><div class="nm">${esc(a.name)}</div>
-           <div class="sub num" data-sub="${a.id}">${on ? fmt(runSec()) : `${fmtShort(total(a.id, "today"))} today`}</div></span>
+           <div class="sub num" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div></span>
          </button>`;
        }).join("")}</div>`
     : `<div class="empty" style="margin-top:16px"><b>No activities yet</b>Create things you want to track, like Work, Gym or Reading.
@@ -760,33 +818,42 @@ function renderManage() {
       <div class="swatches" role="radiogroup" aria-label="Color">
         ${PALETTE.map((c) => `<button type="button" class="sw" style="--c:${c}" data-c="${c}" aria-label="Color ${c}" aria-pressed="${c === pickColor()}"></button>`).join("")}
       </div>
+      <button type="button" class="chip" id="newkind" aria-pressed="${newKind === "limit"}">${icon("down", 14)}Habit to cut back</button>
     </form>
     <h2 class="section"><span>Your activities</span><span>${acts.length}</span></h2>
     ${acts.length ? `<div class="card">${acts.map((a, i) => `
       <div class="editrow" data-id="${a.id}" style="--c:${a.color}">
         <label class="colorbtn" aria-label="Change color"><input type="color" value="${a.color}"></label>
-        <input class="field" value="${esc(a.name)}" maxlength="60" aria-label="Name" enterkeyhint="done">
+        <span class="name-col">
+          <input class="field" value="${esc(a.name)}" maxlength="60" aria-label="Name" enterkeyhint="done">
+          <button type="button" class="chip" data-kind aria-pressed="${a.kind === "limit"}">${icon("down", 12)}Cut back</button>
+        </span>
         <span class="right" style="display:flex">
           <button class="icon-btn" data-move="-1" ${i === 0 ? "disabled" : ""} aria-label="Move up">${icon("up")}</button>
           <button class="icon-btn" data-move="1" ${i === acts.length - 1 ? "disabled" : ""} aria-label="Move down">${icon("down")}</button>
           <button class="icon-btn danger" data-remove aria-label="Delete">${icon("trash")}</button>
         </span>
       </div>`).join("")}</div>
-      <p class="hint">Tap a name to rename it, or the dot to change its color. Deleting an activity keeps its history.</p>`
+      <p class="hint">Tap a name to rename it, or the dot to change its color. Turn on "Cut back" for habits you want to do less of. Deleting an activity keeps its history.</p>`
     : `<div class="empty">Your activities will show up here.</div>`}`;
 
   $$(".sw").forEach((b) => b.onclick = () => {
     newColor = b.dataset.c;
     $$(".sw").forEach((x) => x.setAttribute("aria-pressed", x === b));
   });
+  $("#newkind").onclick = (e) => {
+    newKind = newKind === "limit" ? "good" : "limit";
+    e.currentTarget.setAttribute("aria-pressed", newKind === "limit");
+  };
   $("#addform").onsubmit = async (ev) => {
     ev.preventDefault();
     const name = $("#newname").value.trim();
     if (!name) return $("#newname").focus();
     $("#addbtn").disabled = true;
     try {
-      await api("/activities", { method: "POST", body: { name, color: pickColor() } });
+      await api("/activities", { method: "POST", body: { name, color: pickColor(), kind: newKind } });
       newColor = null;
+      newKind = "good";
       await load();
       $("#newname")?.focus();
       toast(`Added ${name}`);
@@ -810,6 +877,12 @@ function renderManage() {
     const colorEl = $("input[type=color]", row);
     colorEl.oninput = () => row.style.setProperty("--c", colorEl.value);
     colorEl.onchange = () => save({ color: colorEl.value });
+    const kindEl = $("[data-kind]", row);
+    kindEl.onclick = async () => {
+      const kind = act.kind === "limit" ? "good" : "limit";
+      kindEl.setAttribute("aria-pressed", kind === "limit");
+      await save({ kind });
+    };
     $("[data-remove]", row).onclick = async () => {
       if (!confirm(`Delete "${act.name}"? Its tracked time stays in History.`)) return;
       try { await api(`/activities/${id}`, { method: "DELETE" }); await load(); } catch (e) { toast(e.message); }

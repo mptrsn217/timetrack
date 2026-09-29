@@ -69,6 +69,8 @@ await pool.query(`
   );
   ALTER TABLE activities ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;
   ALTER TABLE entries ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;
+  -- 'good' = something to do more of; 'limit' = a habit to cut back on
+  ALTER TABLE activities ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'good';
   CREATE INDEX IF NOT EXISTS activities_user_idx ON activities(user_id);
   CREATE INDEX IF NOT EXISTS entries_user_started_idx ON entries(user_id, started_at);
 `);
@@ -144,6 +146,7 @@ app.use("/api", jsonOnly, (req, res, next) => {
 });
 
 function validTz(tz) {
+  if (typeof tz !== "string" || !tz) return false;
   try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return true; } catch { return false; }
 }
 
@@ -151,7 +154,12 @@ app.get("/api/state", h(async (req, res) => {
   const tz = validTz(req.query.tz) ? req.query.tz : "UTC";
   const [user] = await q("SELECT email, name, picture FROM users WHERE id=$1", [req.uid]);
   if (!user) return res.status(401).json({ error: "Please sign in" });
-  const activities = await q("SELECT id,name,color,sort FROM activities WHERE user_id=$1 AND NOT archived ORDER BY sort, id", [req.uid]);
+  const activities = await q(
+    `SELECT a.id, a.name, a.color, a.sort, a.kind,
+       (SELECT max(COALESCE(e.stopped_at, now())) FROM entries e WHERE e.activity_id=a.id AND e.user_id=$1) AS last_at
+     FROM activities a WHERE a.user_id=$1 AND NOT a.archived ORDER BY a.sort, a.id`,
+    [req.uid]
+  );
   const [running] = await q(
     `SELECT e.*, a.name FROM entries e JOIN activities a ON a.id=e.activity_id
      WHERE e.user_id=$1 AND stopped_at IS NULL ORDER BY started_at DESC LIMIT 1`,
@@ -171,12 +179,13 @@ app.get("/api/state", h(async (req, res) => {
 }));
 
 // Past sessions of an activity (excluding the running one): average and longest length,
-// plus the streak of consecutive local days, ending today, on which it was tracked.
+// the streak of consecutive local days, ending today, on which it was tracked, and when the previous session ended.
 async function sessionStats(uid, activityId, runningId, tz) {
   const [s] = await q(
     `SELECT count(*)::int AS sessions,
        COALESCE(avg(EXTRACT(EPOCH FROM stopped_at - started_at)), 0)::int AS avg,
-       COALESCE(max(EXTRACT(EPOCH FROM stopped_at - started_at)), 0)::int AS max
+       COALESCE(max(EXTRACT(EPOCH FROM stopped_at - started_at)), 0)::int AS max,
+       max(stopped_at) AS prev_end
      FROM entries WHERE user_id=$1 AND activity_id=$2 AND id<>$3 AND stopped_at IS NOT NULL
        AND stopped_at - started_at >= interval '1 minute'`,
     [uid, activityId, runningId]
@@ -204,22 +213,23 @@ app.post("/api/activities", h(async (req, res) => {
   const [{ n }] = await q("SELECT count(*)::int AS n FROM activities WHERE user_id=$1 AND NOT archived", [req.uid]);
   if (n >= MAX_ACTIVITIES) return res.status(400).json({ error: `Limit is ${MAX_ACTIVITIES} activities` });
   const [row] = await q(
-    `INSERT INTO activities(user_id,name,color,sort)
-     VALUES($1,$2,$3,(SELECT COALESCE(MAX(sort),0)+1 FROM activities WHERE user_id=$1)) RETURNING id,name,color,sort`,
-    [req.uid, name, color]
+    `INSERT INTO activities(user_id,name,color,kind,sort)
+     VALUES($1,$2,$3,$4,(SELECT COALESCE(MAX(sort),0)+1 FROM activities WHERE user_id=$1)) RETURNING id,name,color,kind,sort`,
+    [req.uid, name, color, req.body.kind === "limit" ? "limit" : "good"]
   );
   res.json(row);
 }));
 
 app.put("/api/activities/:id", h(async (req, res) => {
-  const { name, color, sort } = req.body;
+  const { name, color, sort, kind } = req.body;
   if (name !== undefined && !cleanName(name)) return res.status(400).json({ error: "Name required" });
   if (color !== undefined && !COLOR_RE.test(color)) return res.status(400).json({ error: "Bad color" });
   if (sort !== undefined && !Number.isInteger(sort)) return res.status(400).json({ error: "Bad sort" });
+  if (kind !== undefined && !["good", "limit"].includes(kind)) return res.status(400).json({ error: "Bad kind" });
   const [row] = await q(
-    `UPDATE activities SET name=COALESCE($3,name), color=COALESCE($4,color), sort=COALESCE($5,sort)
-     WHERE id=$1 AND user_id=$2 RETURNING id,name,color,sort`,
-    [req.params.id, req.uid, cleanName(name), color, sort]
+    `UPDATE activities SET name=COALESCE($3,name), color=COALESCE($4,color), sort=COALESCE($5,sort), kind=COALESCE($6,kind)
+     WHERE id=$1 AND user_id=$2 RETURNING id,name,color,kind,sort`,
+    [req.params.id, req.uid, cleanName(name), color, sort, kind]
   );
   if (!row) return res.status(404).json({ error: "Not found" });
   res.json(row);
