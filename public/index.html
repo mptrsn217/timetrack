@@ -399,11 +399,6 @@
   .hero.focus .rounds i.now { background: linear-gradient(90deg, var(--c) 50%, color-mix(in srgb, var(--c) 25%, transparent) 50%); }
   .hero.focus .rounds span { margin-left: 6px; }
   #startfocus { margin-top: 2px; }
-  .presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .preset { text-align: left; padding: 10px; border-radius: 12px; background: var(--surface-2); }
-  .preset b { display: block; font-size: 14px; }
-  .preset small { color: var(--muted); font-size: 12px; }
-  .preset[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
   .goalrow.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   /* starter */
@@ -541,8 +536,6 @@
   .yn button { min-width: 58px; padding: 9px 12px; border-radius: 12px; font-weight: 700; background: var(--surface-2); color: var(--muted); }
   .yn button.good[aria-pressed="true"] { background: var(--c); color: #fff; }
   .yn button.bad[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .hsugg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .hsugg .hchip { color: var(--ink); }
   .habitcard + .habitcard { margin-top: 10px; }
   .hrow.count { flex-wrap: wrap; row-gap: 8px; }
   .hrow.count .hq { flex-wrap: wrap; }
@@ -909,9 +902,6 @@ function tileBar(a) {
 /* ---------- habits: daily yes/no check-ins, one year heatmap each ---------- */
 let habitsData = null;
 let hDay = null; // the day being checked in (defaults to today)
-const HABIT_SUGGEST = [["Pushups", "count", 100, 10], ["Glasses of water", "count", 8, 1], ["Workout", "do"], ["Read", "do"], ["Meditate", "do"],
-  ["Squats", "count", 50, 10], ["8h sleep", "do"], ["Took vitamins", "do"], ["Pages read", "count", 20, 5],
-  ["Ate sugar", "avoid"], ["Alcohol", "avoid"], ["Junk food", "avoid"], ["Smoked", "avoid"], ["Doomscrolling", "avoid"]];
 const countOf = (id, day) => habitsData.counts.find((c) => c.habit_id === id && c.day === day)?.count || 0;
 const dayStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const shiftDay = (s, n) => { const d = parseDay(s); d.setDate(d.getDate() + n); return dayStr(d); };
@@ -974,7 +964,6 @@ function renderHabits() {
   if (!hDay || hDay > today) hDay = today;
   const dayLabel = hDay === today ? "Today" : hDay === shiftDay(today, -1) ? "Yesterday"
     : parseDay(hDay).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-  const suggest = HABIT_SUGGEST.filter(([n]) => !habits.some((h) => h.name.toLowerCase() === n.toLowerCase()));
   const check = habits.length ? `<section class="card hcheck">
       <div class="hdaynav"><button class="icon-btn" id="hprev" aria-label="Previous day">${icon("up", 18)}</button>
         <b>${dayLabel}</b><button class="icon-btn" id="hnext" aria-label="Next day" ${hDay >= today ? "disabled" : ""}>${icon("down", 18)}</button></div>
@@ -996,9 +985,7 @@ function renderHabits() {
           <button type="button" data-mark="${h.id}" data-v="false" aria-pressed="${v === false}" class="${h.kind === "avoid" ? "good" : "bad"}">No</button></span></div>`;
       }).join("")}
     </section>` : `<section class="card hcheck empty-h"><b>Track yes/no habits</b>
-      <p class="hint" style="margin:4px 0 0">One tap a day: did you do it? See every day of the year as a heatmap. Tap one to add it, or make your own.</p></section>`;
-  const sugg = suggest.length ? `<div class="hsugg">${suggest.slice(0, habits.length ? 6 : 14).map(([n, k, t, st]) =>
-    `<button type="button" class="hchip" data-sugg="${esc(n)}" data-kind="${k}" data-target="${t || ""}" data-step="${st || ""}">${icon("plus", 12)}${esc(n)}${k === "avoid" ? " (avoid)" : k === "count" ? ` (${t}/day)` : ""}</button>`).join("")}</div>` : "";
+      <p class="hint" style="margin:4px 0 0">One tap a day: did you do it? See every day of the year as a heatmap. Tap <b>New habit</b> to add one.</p></section>`;
   const dates = Array.from({ length: 371 }, (_, i) => shiftDay(today, i - 370));
   const cards = habits.map((h) => {
     if (h.kind === "count") return countCard(h, dates, today);
@@ -1019,7 +1006,7 @@ function renderHabits() {
     </section>`;
   }).join("");
   app.innerHTML = `<h2 class="section"><span>Check in</span><button class="linkbtn" id="newhabit">${icon("plus", 16)}New habit</button></h2>
-    ${check}${sugg}${habits.length ? `<h2 class="section"><span>Year</span><span></span></h2>${cards}` : ""}`;
+    ${check}${habits.length ? `<h2 class="section"><span>Year</span><span></span></h2>${cards}` : ""}`;
 
   $$(".hscroll", app).forEach((sc) => (sc.scrollLeft = sc.scrollWidth));
   $("#newhabit").onclick = () => openHabit();
@@ -1042,13 +1029,6 @@ function renderHabits() {
   });
   $$("[data-cset]").forEach((b) => b.onclick = () => openCountEdit(habitsData.habits.find((h) => h.id == b.dataset.cset), hDay));
   $$("[data-cday]").forEach((c) => c.onclick = () => openCountEdit(habitsData.habits.find((h) => h.id == c.dataset.habit), c.dataset.cday));
-  $$("[data-sugg]").forEach((b) => b.onclick = async () => {
-    try {
-      await api("/habits", { method: "POST", body: { name: b.dataset.sugg, kind: b.dataset.kind, color: nextHabitColor(),
-        ...(b.dataset.kind === "count" ? { target: Number(b.dataset.target), step: Number(b.dataset.step) } : {}) } });
-      await load();
-    } catch (e) { toast(e.message); }
-  });
 }
 const nextHabitColor = () => {
   const used = new Set((habitsData?.habits || []).map((h) => h.color.toLowerCase()));
@@ -1413,7 +1393,6 @@ async function advanceFocusNow() {
   try { await api("/focus/advance", { method: "POST" }); await load(); notify(); } catch {}
   setTimeout(() => (advancing = false), 3000);
 }
-const FOCUS_PRESETS = [[25, 5, 4, "Classic"], [50, 10, 2, "Long"], [90, 15, 1, "Deep"]];
 function openFocus() {
   const acts = state.activities.filter((a) => a.kind !== "limit");
   if (!acts.length) return toast("Add an activity first");
@@ -1423,8 +1402,6 @@ function openFocus() {
     <form class="eform" id="focusform">
       <p class="hint" style="margin:0 4px">Work in focused rounds with short breaks in between. Timetrack switches by itself and notifies you; break time isn't counted.</p>
       <label>Activity<select class="field" name="act">${acts.map((a) => `<option value="${a.id}" ${a.id === last.id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>
-      <div class="presets">${FOCUS_PRESETS.map(([w, b, n, l], i) => `<button type="button" class="preset" data-i="${i}" aria-pressed="${i === 0}">
-        <b>${l}</b><small>${w} min · ${b} min break · ${n}×</small></button>`).join("")}</div>
       <div class="goalrow three">
         <label>Focus (min)<input class="field num" type="number" name="w" min="5" max="180" value="25" inputmode="numeric"></label>
         <label>Break (min)<input class="field num" type="number" name="b" min="1" max="60" value="5" inputmode="numeric"></label>
@@ -1437,10 +1414,8 @@ function openFocus() {
   const f = $("#focusform");
   const upd = () => {
     const w = +f.w.value, b = +f.b.value, n = +f.n.value;
-    $$(".preset", f).forEach((p) => { const [pw, pb, pn] = FOCUS_PRESETS[p.dataset.i]; p.setAttribute("aria-pressed", pw === w && pb === b && pn === n); });
     $("#ftotal").textContent = w && n ? `${fmtShort(w * n * 60)} of focus, done at ${clock(now() + (w * n + b * (n - 1)) * 60e3)}` : "";
   };
-  $$(".preset", f).forEach((p) => p.onclick = () => { const [w, b, n] = FOCUS_PRESETS[p.dataset.i]; f.w.value = w; f.b.value = b; f.n.value = n; upd(); });
   f.oninput = upd; upd();
   $("#fcancel").onclick = () => editSheet.close();
   f.onsubmit = async (ev) => {
