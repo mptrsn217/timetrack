@@ -389,6 +389,7 @@
   .isteps li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; font-size: 15px; }
   .isteps .sico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--ink); }
   #doinstall { justify-self: start; }
+  .ibenefit { margin: 0 4px; font-size: 15px; line-height: 1.45; }
 
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
@@ -1703,7 +1704,7 @@ function openInstallGuide() {
   } else if (isIOS) {
     const safari = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(UA);
     body = `<ol class="isteps">
-      ${step(icon("share", 18), safari ? `Tap the <b>Share</b> button in Safari's toolbar (the square with an arrow, at the bottom of the screen, or next to the address on iPad)` : `Tap the <b>Share</b> button next to the address bar`)}
+      ${step(icon("share", 18), safari ? `Tap the <b>Share</b> button in Safari's toolbar (the square with an arrow, at the bottom of the screen, or next to the address on iPad)` : `Tap the <b>Share</b> button in the address bar (the URL bar at the top, the square with an arrow). In Chrome on iPhone, Add to Home Screen is also found under Share`)}
       ${step(icon("plus", 18), `Scroll down the list and tap <b>Add to Home Screen</b>`)}
       ${step(icon("check", 18), `Tap <b>Add</b> in the top-right corner`)}
       ${step(icon("home", 18), `Open <b>Timetrack</b> from your Home Screen and sign in there once more`)}
@@ -1724,6 +1725,7 @@ function openInstallGuide() {
   $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Add to Home Screen</h3>
     <div class="eform">
       <div class="ipreview"><img src="/icon-192.png" alt="" width="56" height="56"><span><b>Timetrack</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
+      <p class="ibenefit">Adding Timetrack to your Home Screen gives you the best experience and lets you use the app the way it's intended: full screen, with its own icon, and with notifications.</p>
       ${body}
       <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="iclose">Got it</button></div>
     </div>`;
