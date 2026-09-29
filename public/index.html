@@ -85,6 +85,10 @@
   .goal .gfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--c); }
   .goal .gmark { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .55; }
   .goal .gsub { color: var(--muted); font-size: 13px; }
+  .goal.live:empty { display: none; }
+  .goal.live .gl1 span { display: inline-flex; align-items: center; gap: 6px; }
+  .goal.live .gl1 span.muted { color: var(--muted); font-weight: 500; font-size: 14px; }
+  .goal .gbar.over .gfill { background: var(--danger); }
   .goal .gl1.rec span:first-child { color: var(--c); }
   .goal .gl1.warn span:first-child { color: var(--danger); display: inline-flex; align-items: center; gap: 6px; }
   .kindtag { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface-2); padding: 2px 7px; border-radius: 99px;
@@ -613,7 +617,8 @@ function renderTrack() {
           <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)}</div></div>
           <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button>
         </div>
-        <div class="goal" id="goal">${goalHTML()}</div></section>`
+        <div class="goal" id="goal">${goalHTML()}</div>
+        <div class="goal live" id="livegoal">${liveGoalHTML(runAct)}</div></section>`
     : `<section class="hero">
         <div class="label">Today</div>
         <div><div class="clock num" id="todaytotal">${fmtShort(todayTotal)}</div>
@@ -638,6 +643,7 @@ function renderTrack() {
 
   app.innerHTML = hero + list;
   if (r) $("#stopbtn").onclick = stop;
+  bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => go("manage", true));
   $$(".tile").forEach((b) => b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id)));
 }
@@ -1142,6 +1148,37 @@ function maybeForgotten() {
 
 /* ---------- goals ---------- */
 const periodWord = (p) => (p === "day" ? "today" : "this week");
+
+// Live progress of the running activity toward its daily/weekly goal (or limit), recomputed every second
+function liveGoalHTML(a) {
+  if (!a) return "";
+  if (!a.goal_minutes) {
+    return `<div class="gl1"><span class="muted">No ${a.kind === "limit" ? "limit" : "goal"} for ${esc(a.name)} yet</span>
+      <button type="button" class="linkbtn" id="setlivegoal">${icon("flag", 14)}Set ${a.kind === "limit" ? "limit" : "goal"}</button></div>`;
+  }
+  const g = goalState(a);
+  const left = g.g - g.v;
+  const at = (sec) => clock(now() + sec * 1000);
+  const when = periodWord(a.goal_period);
+  const label = `${a.kind === "limit" ? "Limit" : "Goal"} ${fmtShort(g.g)} ${when}`;
+  let head, sub, cls = "";
+  if (a.kind === "limit") {
+    if (g.over) { head = `${icon("alert", 16)}Over limit by ${fmtShort(-left)}`; sub = `${label} · stop now to limit the damage`; cls = "warn"; }
+    else { head = `${fmtShort(left)} left before your limit`; sub = `${label} · reached at ${at(left)} if you keep going`; }
+  } else if (g.done) {
+    head = `Goal reached · ${fmtShort(-left) === "0m" ? "just now" : `+${fmtShort(-left)}`}`; sub = `${label} · ${fmtShort(g.v)} done`; cls = "rec";
+  } else {
+    head = `${fmtShort(left + 59)} to your goal`; sub = `${label} · ${fmtShort(g.v)} done · reached at ${at(left)}`;
+  }
+  return `<div class="gl1 ${cls}"><span>${icon("flag", 15)}${head}</span></div>
+    <div class="gbar${g.over ? " over" : ""}" role="progressbar" aria-label="${esc(label)}" aria-valuenow="${Math.round(g.pct * 100)}" aria-valuemin="0" aria-valuemax="100">
+      <div class="gfill" style="width:${g.pct * 100}%"></div></div>
+    <div class="gsub num">${sub}</div>`;
+}
+function bindLiveGoal(a) {
+  const b = $("#setlivegoal");
+  if (b && a) b.onclick = () => openGoal(a);
+}
 function goalState(a) {
   if (!a.goal_minutes) return null;
   const v = total(a.id, a.goal_period === "day" ? "today" : "week"), g = a.goal_minutes * 60;
@@ -1388,6 +1425,16 @@ setInterval(() => {
   const c = $("#clock"); if (c) c.textContent = v;
   const g = $("#goal");
   if (g) g.innerHTML = goalHTML();
+  const runAct = state.activities.find((a) => a.id === state.running.activity_id);
+  const lg = $("#livegoal");
+  if (lg && runAct?.goal_minutes) lg.innerHTML = liveGoalHTML(runAct);
+  const gs = runAct && goalState(runAct);
+  const tb = $(`.tile[data-id="${state.running.activity_id}"] .tbar`);
+  if (tb && gs) {
+    tb.firstElementChild.style.width = `${gs.pct * 100}%`;
+    tb.classList.toggle("over", gs.over);
+    tb.classList.toggle("done", gs.done);
+  }
   const sub = $(`[data-sub="${state.running.activity_id}"]`); if (sub) sub.textContent = v;
 }, 1000);
 setInterval(() => signedIn && load({ background: true }), 30000);
