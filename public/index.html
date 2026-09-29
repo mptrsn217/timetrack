@@ -8,25 +8,36 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#131519" media="(prefers-color-scheme: dark)">
+<script>
+  // apply a chosen theme before anything is drawn, so the page never flashes the other one
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root {
     --bg: #f6f5f1; --surface: #ffffff; --surface-2: #efeee9; --line: #e4e2dc;
     --ink: #1a1c21; --muted: #6c707a; --faint: #a3a6ad;
-    --accent: #d8920f; --accent-ink: #1a1405; --danger: #d0453f;
+    --accent: #d8920f; --accent-ink: #1a1405; --danger: #d0453f; --good: #1f9d55;
     --shadow: 0 1px 2px rgba(20, 20, 30, .05), 0 4px 16px rgba(20, 20, 30, .05);
     --radius: 18px;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #131519; --surface: #1c1f25; --surface-2: #252932; --line: #2c3039;
       --ink: #eef0f3; --muted: #8e94a0; --faint: #5d626d;
-      --accent: #f2b33d; --accent-ink: #1a1405; --danger: #ef6a63;
+      --accent: #f2b33d; --accent-ink: #1a1405; --danger: #ef6a63; --good: #4cc38a;
       --shadow: none;
       color-scheme: dark;
     }
+  }
+  :root[data-theme="dark"] {
+      --bg: #131519; --surface: #1c1f25; --surface-2: #252932; --line: #2c3039;
+      --ink: #eef0f3; --muted: #8e94a0; --faint: #5d626d;
+      --accent: #f2b33d; --accent-ink: #1a1405; --danger: #ef6a63; --good: #4cc38a;
+      --shadow: none;
+      color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink);
@@ -201,7 +212,8 @@
   .addbox { padding: 14px; }
   .addrow { display: flex; gap: 8px; }
   .addrow .btn { margin-top: 0; }
-  .swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 32px)); justify-content: space-between; gap: 10px 6px; margin-top: 12px; }
+  .sw { width: 100%; aspect-ratio: 1; height: auto; max-width: 32px; }
   .sw { width: 30px; height: 30px; border-radius: 50%; background: var(--c); position: relative; }
   .sw[aria-pressed="true"]::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--c); }
   .editrow { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 10px 10px 14px; }
@@ -340,9 +352,8 @@
   .wk .track { position: relative; overflow: visible; }
   .wk .prev { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--ink); opacity: .45; }
   .wk .delta { font-size: 12px; color: var(--muted); margin-top: 5px; }
-  .wk .delta.better { color: #1f9d55; }
+  .wk .delta.better { color: var(--good); }
   .wk .delta.worse { color: var(--danger); }
-  @media (prefers-color-scheme: dark) { .wk .delta.better { color: #4cc38a; } }
   .linkbtn { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; font-size: 13px;
     text-transform: none; letter-spacing: 0; }
   .search { position: relative; margin-bottom: 4px; }
@@ -356,7 +367,7 @@
   .nstatus { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; margin: 0 4px; color: var(--muted); }
   .nstatus::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--faint); }
   .nstatus.on { color: var(--ink); }
-  .nstatus.on::before { background: #1f9d55; }
+  .nstatus.on::before { background: var(--good); }
   .nprefs { display: grid; gap: 4px; }
   .nrow { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; text-align: left; padding: 10px 8px; border-radius: 12px; }
   .nrow:hover { background: var(--surface-2); }
@@ -367,6 +378,17 @@
   .nrow[aria-pressed="true"] .box::after { content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px;
     border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
   .steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+
+  /* appearance + install guide */
+  .appearance { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 12px; font-weight: 550; }
+  .appearance .seg { margin: 0; }
+  .ipreview { display: flex; gap: 14px; align-items: center; padding: 12px; border-radius: 16px; background: var(--surface-2); }
+  .ipreview img { border-radius: 13px; flex-shrink: 0; }
+  .ipreview small { display: block; color: var(--muted); font-size: 13px; }
+  .isteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: st; }
+  .isteps li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; font-size: 15px; }
+  .isteps .sico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--ink); }
+  #doinstall { justify-self: start; }
 
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
@@ -418,6 +440,10 @@
   <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -442,6 +468,11 @@
     <div class="who"><span class="avatar" id="sheet-av"></span><div><div id="sheet-name"></div><div id="sheet-email"></div></div></div>
     <div class="menu">
       <button id="notif"><svg width="22" height="22"><use href="#i-bell"/></svg>Notifications</button>
+      <div class="appearance"><span>Appearance</span>
+        <div class="seg" role="radiogroup" aria-label="Appearance">
+          <button type="button" data-theme-opt="auto">Auto</button><button type="button" data-theme-opt="light">Light</button><button type="button" data-theme-opt="dark">Dark</button>
+        </div></div>
+      <button id="installbtn" hidden><svg width="22" height="22"><use href="#i-home"/></svg>Add to Home Screen</button>
       <button id="csv"><svg width="22" height="22"><use href="#i-dl"/></svg>Export CSV (spreadsheet)</button>
       <button id="backup"><svg width="22" height="22"><use href="#i-dl"/></svg>Download backup</button>
       <button id="restore"><svg width="22" height="22"><use href="#i-upload"/></svg>Restore from backup</button>
@@ -466,7 +497,8 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const app = $("#app");
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 // validated categorical order: adjacent pairs stay distinguishable for colorblind users on light and dark
-const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
+const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767",
+  "#2f9fd0", "#b86e2e", "#009b8f", "#8a62c9", "#7c8a1a", "#b3478c", "#5b6bd8", "#b0584f"];
 let signedIn = false;
 let state = { activities: [], running: null, totals: [], user: null };
 let view = "track";
@@ -571,21 +603,24 @@ async function renderLogin() {
       <div style="--c:#5b8def"><i></i>Reading<em class="num">1h 05m</em></div>
     </div>
     <div id="gbtn"></div>
+    ${canInstall() ? `<button class="linkbtn" id="howinstall">${icon("home", 16)}Add Timetrack to your Home Screen</button>` : ""}
     <p class="fine">Free. Your data is private to your account. <a href="/privacy.html">Privacy</a></p>
   </div>`;
+  $("#howinstall")?.addEventListener("click", openInstallGuide);
   try {
     if (googleClientId === null) googleClientId = (await fetch("/config").then((r) => r.json())).googleClientId;
     if (!googleClientId) return toast("Sign-in is not configured on the server");
     await new Promise((ok) => (function wait() { window.google?.accounts?.id ? ok() : setTimeout(wait, 50); })());
     google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogle });
-    google.accounts.id.renderButton($("#gbtn"), { theme: matchMedia("(prefers-color-scheme: dark)").matches ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with" });
+    google.accounts.id.renderButton($("#gbtn"), { theme: isDark() ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with" });
   } catch { toast("Could not load Google sign-in"); }
 }
 async function onGoogle({ credential }) {
   const r = await fetch("/auth/google", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ credential }) });
   if (!r.ok) return toast((await r.json().catch(() => ({}))).error || "Sign-in failed");
   view = "track";
-  load();
+  await load();
+  maybeInstallGuide();
 }
 
 /* ---------- track ---------- */
@@ -1630,6 +1665,88 @@ document.addEventListener("visibilitychange", () => !document.hidden && signedIn
 // notifications (persistent timer in shade / lock screen on Android)
 let swReg = null;
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").then((r) => swReg = r);
+/* ---------- appearance ---------- */
+const themePref = () => { try { return localStorage.getItem("theme") || "auto"; } catch { return "auto"; } };
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+function applyTheme(pref) {
+  if (pref === "light" || pref === "dark") document.documentElement.dataset.theme = pref;
+  else delete document.documentElement.dataset.theme;
+  try { pref === "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", pref); } catch {}
+  // the browser bar colour follows the chosen theme too
+  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", isDark() ? "#131519" : "#f6f5f1"));
+  $$("[data-theme-opt]").forEach((b) => b.setAttribute("aria-checked", b.dataset.themeOpt === pref));
+  $$("[data-theme-opt]").forEach((b) => b.setAttribute("aria-selected", b.dataset.themeOpt === pref));
+}
+$$("[data-theme-opt]").forEach((b) => b.onclick = () => applyTheme(b.dataset.themeOpt));
+applyTheme(themePref());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme(themePref()));
+
+/* ---------- add to Home Screen guide ---------- */
+const UA = navigator.userAgent;
+const isAndroid = /Android/i.test(UA);
+const inAppBrowser = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|LinkedInApp|GSA\//i.test(UA);
+const canInstall = () => !isStandalone && (isIOS || isAndroid);
+let installEvent = null; // Chrome/Edge on Android offer their own install dialog
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvent = e; $("#installbtn")?.removeAttribute("hidden"); });
+window.addEventListener("appinstalled", () => { installEvent = null; toast("Timetrack added to your Home Screen"); });
+// after the whole script has run (isIOS / isStandalone are declared further down)
+queueMicrotask(() => { if (canInstall()) $("#installbtn").hidden = false; });
+
+function openInstallGuide() {
+  sheet.close();
+  const step = (ic, html) => `<li><span class="sico">${ic}</span><span>${html}</span></li>`;
+  let body;
+  if (inAppBrowser) {
+    body = `<p class="hint" style="margin:0 4px">You're inside another app's browser, which can't add pages to your Home Screen.</p>
+      <ol class="isteps">${step(icon("dots", 18), `Tap the menu (<b>⋯</b> or <b>⋮</b>) and choose <b>Open in ${isIOS ? "Safari" : "Chrome"}</b>`)}
+      ${step(icon("home", 18), "Then open this guide again from there")}</ol>`;
+  } else if (isIOS) {
+    const safari = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(UA);
+    body = `<ol class="isteps">
+      ${step(icon("share", 18), safari ? `Tap the <b>Share</b> button in Safari's toolbar (the square with an arrow, at the bottom of the screen, or next to the address on iPad)` : `Tap the <b>Share</b> button next to the address bar`)}
+      ${step(icon("plus", 18), `Scroll down the list and tap <b>Add to Home Screen</b>`)}
+      ${step(icon("check", 18), `Tap <b>Add</b> in the top-right corner`)}
+      ${step(icon("home", 18), `Open <b>Timetrack</b> from your Home Screen and sign in there once more`)}
+      </ol>
+      <p class="hint" style="margin:0 4px">The Home Screen app opens full screen and can send notifications (iOS 16.4 or newer).</p>`;
+  } else if (installEvent) {
+    body = `<p class="hint" style="margin:0 4px">Add Timetrack as an app: it opens full screen, has its own icon and can send notifications.</p>
+      <button type="button" class="btn" id="doinstall">${icon("home", 18)}Install Timetrack</button>`;
+  } else if (isAndroid) {
+    body = `<ol class="isteps">
+      ${step(icon("dots", 18), `Tap the browser menu (<b>⋮</b> in Chrome, top right; <b>≡</b> in Samsung Internet, bottom right)`)}
+      ${step(icon("home", 18), `Tap <b>Add to Home screen</b> or <b>Install app</b>`)}
+      ${step(icon("check", 18), `Confirm with <b>Add</b> / <b>Install</b>`)}
+      </ol>`;
+  } else {
+    body = `<p class="hint" style="margin:0 4px">Open this page on your phone to add it to your Home Screen. In Chrome or Edge on a computer, use the install icon at the right end of the address bar.</p>`;
+  }
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Add to Home Screen</h3>
+    <div class="eform">
+      <div class="ipreview"><img src="/icon-192.png" alt="" width="56" height="56"><span><b>Timetrack</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
+      ${body}
+      <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="iclose">Got it</button></div>
+    </div>`;
+  $("#iclose").onclick = () => editSheet.close();
+  $("#doinstall")?.addEventListener("click", async () => {
+    installEvent.prompt();
+    const { outcome } = await installEvent.userChoice;
+    installEvent = null;
+    editSheet.close();
+    if (outcome !== "accepted") toast("You can install it later from the menu");
+  });
+  if (!editSheet.open) editSheet.showModal();
+}
+$("#installbtn").onclick = openInstallGuide;
+
+// shown once, a moment after the first sign-in on a phone that isn't using the Home Screen app yet
+function maybeInstallGuide() {
+  let seen = false;
+  try { seen = !!localStorage.getItem("installGuideSeen"); localStorage.setItem("installGuideSeen", "1"); } catch {}
+  if (seen || !canInstall()) return;
+  setTimeout(() => { if (signedIn && !editSheet.open && !sheet.open) openInstallGuide(); }, 1500);
+}
+
 /* ---------- iPhone lock screen buttons (Shortcuts) ---------- */
 const copy = async (text, what) => {
   try { await navigator.clipboard.writeText(text); toast(`${what} copied`); }
@@ -1810,7 +1927,7 @@ async function notify() {
 }
 navigator.serviceWorker?.addEventListener("message", (e) => e.data === "reload" && load());
 
-load().then(() => signedIn && syncSub());
+load().then(() => { if (signedIn) { syncSub(); maybeInstallGuide(); } });
 </script>
 </body>
 </html>
