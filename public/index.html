@@ -124,6 +124,31 @@
   .grow .gtrack span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
   .grow .gtrack.over span { background: var(--danger); }
   .setgoals { justify-self: start; }
+  .hbtns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .btn-pause { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); }
+  .btn-pause:active { transform: scale(.95); }
+  .hero.paused { background: color-mix(in srgb, var(--c) 8%, var(--surface)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c) 35%, transparent); }
+  .hero.paused .pulse { background: var(--c); }
+  .hero .endbreak { margin-top: 12px; justify-self: start; align-self: flex-start; color: var(--muted); }
+  .pchoices { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+  .pchoice { padding: 14px 0; border-radius: 12px; background: var(--surface-2); font-weight: 700; }
+  .pchoice:active { transform: scale(.97); }
+  .streakl { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--c); }
+  .keys { display: grid; gap: 2px; }
+  .keyrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  .keyrow small, .newkey small { display: block; color: var(--muted); font-size: 12px; }
+  .newkey { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .newkey .btn { justify-self: start; margin: 0; }
+  .eform code, .guide code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2);
+    padding: 2px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+  .newkey code { padding: 8px 10px; user-select: all; }
+  .guide { font-size: 14px; }
+  .guide summary { cursor: pointer; font-weight: 650; padding: 6px 4px; }
+  .guide ol { padding-left: 22px; margin: 6px 0; display: grid; gap: 8px; }
+  .guide ul { padding-left: 18px; margin: 4px 0; }
+  .copyrow { display: flex; align-items: center; gap: 4px; margin-top: 4px; min-width: 0; }
+  .copyrow code { flex: 1; min-width: 0; }
   .daybar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin-top: 16px; gap: 2px; }
   .daybar span { background: var(--c); min-width: 3px; }
 
@@ -390,6 +415,9 @@
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
   <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -420,7 +448,10 @@
       <input type="file" id="restorefile" accept="application/json,.json" hidden>
       <a href="/privacy.html"><svg width="22" height="22"><use href="#i-shield"/></svg>Privacy</a>
       <hr>
+      <button id="shortcuts"><svg width="22" height="22"><use href="#i-bolt"/></svg>iPhone lock screen buttons</button>
+      <hr>
       <button id="logout"><svg width="22" height="22"><use href="#i-out"/></svg>Sign out</button>
+      <button id="signoutall"><svg width="22" height="22"><use href="#i-out"/></svg>Sign out everywhere</button>
       <button id="delacct" class="danger"><svg width="22" height="22"><use href="#i-trash"/></svg>Delete account</button>
     </div>
   </div>
@@ -568,7 +599,8 @@ function goalHTML() {
   if (state.activities.find((a) => a.id === r.activity_id)?.kind === "limit") return limitGoalHTML(st, r);
   const el = runSec();
   const left = (sec) => (sec < 60 ? `${Math.ceil(sec)}s` : fmtShort(sec + 59));
-  const streak = st.streak >= 2 ? `<span class="streak">${st.streak}-day streak</span>` : "";
+  const sk = state.streaks?.[r.activity_id];
+  const streak = sk?.current >= 2 ? `<span class="streak" title="Best: ${sk.best} days">${sk.current}-day streak</span>` : "";
   if (!st.sessions) {
     return `<div class="gl1"><span>First ${esc(r.name)} session</span>${streak}</div>
       <div class="gsub">Your average and record start from this one.</div>`;
@@ -648,6 +680,56 @@ function tileBar(a) {
   return `<span class="tbar${g.over ? " over" : ""}${g.done ? " done" : ""}" aria-hidden="true"><i style="width:${g.pct * 100}%"></i></span>`;
 }
 
+/* ---------- breaks ---------- */
+const pauseLeft = () => (state.pause ? (new Date(state.pause.until) - now()) / 1000 : 0);
+function pausedHero(p) {
+  return `<section class="hero paused" style="--c:${p.color}">
+    <div><div class="label"><span class="pulse"></span>On a break</div><div class="name">${esc(p.name)}</div></div>
+    <div class="row">
+      <div><div class="clock num" id="pauseclock">${fmt(Math.max(0, pauseLeft()))}</div><div class="since">Continues at ${clock(p.until)}</div></div>
+      <button class="btn-stop" id="resumenow">${icon("play", 16)}Resume</button>
+    </div>
+    <button class="linkbtn endbreak" id="endbreak">End the session instead</button></section>`;
+}
+function openPause() {
+  const r = state.running;
+  if (!r) return;
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Take a break</h3>
+    <form class="eform" id="pauseform">
+      <p class="hint" style="margin:0 4px">${esc(r.name)} stops now and starts again when the break is over. You'll get a notification.</p>
+      <div class="pchoices">${[5, 10, 15, 30, 60].map((m) => `<button type="button" class="pchoice" data-m="${m}">${m} min</button>`).join("")}</div>
+      <label>Or minutes<input class="field num" type="number" name="m" min="1" max="240" placeholder="e.g. 20" inputmode="numeric"></label>
+      <div class="eactions"><span></span><span></span><button type="button" class="btn ghost" id="pcancel">Cancel</button><button type="submit" class="btn">Start break</button></div>
+    </form>`;
+  const f = $("#pauseform");
+  const go = async (minutes) => {
+    if (!(minutes >= 1 && minutes <= 240)) return toast("Pick 1 to 240 minutes");
+    try {
+      const out = await api("/pause", { method: "POST", body: { minutes } });
+      editSheet.close();
+      await stopNotify();
+      await load();
+      toast(out.message);
+    } catch (e) { toast(e.message); }
+  };
+  $$(".pchoice", f).forEach((b) => b.onclick = () => go(Number(b.dataset.m)));
+  f.onsubmit = (ev) => { ev.preventDefault(); go(Number(f.m.value)); };
+  $("#pcancel").onclick = () => editSheet.close();
+  editSheet.showModal();
+}
+let resuming = false;
+async function resumeBreak(auto) {
+  if (resuming) return;
+  resuming = true;
+  try {
+    const out = await api("/pause/resume", { method: "POST" });
+    await load();
+    notify();
+    toast(auto === true ? `Break over · ${state.running?.name || "timer"} continues` : out.message);
+  } catch (e) { toast(e.message); }
+  resuming = false;
+}
+
 // When nothing is running: a one-tap way back into the last activity, and where today's goals stand.
 function idleHero(acts) {
   if (!acts.length) {
@@ -686,6 +768,15 @@ function idleHero(acts) {
   return `<section class="hero idle"><div class="label">Nothing running</div>${resume}${goals}</section>`;
 }
 
+// "5-day streak · best 12"; for cut-back habits with a daily limit, days stayed under it
+function streakLine(a) {
+  const sk = state.streaks?.[a.id];
+  if (!sk || sk.current < 2) return "";
+  if (a.kind === "limit" && !(a.goal_minutes && a.goal_period === "day")) return ""; // the tile already says "N days free"
+  const what = a.kind === "limit" ? `${sk.current} days under limit` : `${sk.current}-day streak`;
+  return `<div class="streakl num">${icon("bolt", 12)}${what}${sk.best > sk.current ? ` · best ${sk.best}` : ""}</div>`;
+}
+
 function renderTrack() {
   const r = state.running;
   const acts = state.activities;
@@ -697,11 +788,12 @@ function renderTrack() {
         <div class="name">${esc(r.name)}</div></div>
         <div class="row">
           <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)}</div></div>
-          <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button>
+          <span class="hbtns"><button class="btn-pause" id="pausebtn" aria-label="Take a break">${icon("pause", 18)}</button>
+          <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button></span>
         </div>
         <div class="goal" id="goal">${goalHTML()}</div>
         <div class="goal live" id="livegoal">${liveGoalHTML(runAct)}</div></section>`
-    : idleHero(acts);
+    : state.pause ? pausedHero(state.pause) : idleHero(acts);
 
   const list = acts.length
     ? `<h2 class="section"><span>Activities</span><span></span></h2>
@@ -711,7 +803,8 @@ function renderTrack() {
            <span class="play">${icon(on ? "stop" : "play", 14)}</span>
            <span class="top-l"><span class="dot"></span>${a.kind === "limit" ? `<span class="kindtag">Cut back</span>` : ""}</span>
            <span><div class="nm">${esc(a.name)}</div>
-           <div class="sub num${goalState(a)?.over ? " warn" : ""}" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div></span>
+           <div class="sub num${goalState(a)?.over ? " warn" : ""}" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div>
+           ${streakLine(a)}</span>
            ${tileBar(a)}
          </button>`;
        }).join("")}</div>`
@@ -720,6 +813,11 @@ function renderTrack() {
 
   app.innerHTML = hero + list;
   if (r) $("#stopbtn").onclick = stop;
+  $("#pausebtn")?.addEventListener("click", openPause);
+  $("#resumenow")?.addEventListener("click", resumeBreak);
+  $("#endbreak")?.addEventListener("click", async () => {
+    try { await api("/pause/cancel", { method: "POST" }); await load(); toast("Session ended"); } catch (e) { toast(e.message); }
+  });
   bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => go("manage", true));
   $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id)));
@@ -1503,6 +1601,12 @@ $("#restorefile").onchange = async (ev) => {
 
 // live tick
 setInterval(() => {
+  if (signedIn && !state.running && state.pause) {
+    const left = pauseLeft();
+    const pc = $("#pauseclock"); if (pc) pc.textContent = fmt(Math.max(0, left));
+    if (left <= 0) resumeBreak(true);
+    return;
+  }
   if (!state.running || !signedIn) return;
   const v = fmt(runSec());
   const c = $("#clock"); if (c) c.textContent = v;
@@ -1526,6 +1630,72 @@ document.addEventListener("visibilitychange", () => !document.hidden && signedIn
 // notifications (persistent timer in shade / lock screen on Android)
 let swReg = null;
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").then((r) => swReg = r);
+/* ---------- iPhone lock screen buttons (Shortcuts) ---------- */
+const copy = async (text, what) => {
+  try { await navigator.clipboard.writeText(text); toast(`${what} copied`); }
+  catch { prompt(`Copy the ${what.toLowerCase()}:`, text); }
+};
+async function openShortcuts(newKey) {
+  sheet.close();
+  let keys;
+  try { keys = await api("/tokens"); } catch (e) { return toast(e.message); }
+  const url = `${location.origin}/api/toggle`;
+  const when = (d) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "never");
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Lock screen buttons</h3>
+    <div class="eform">
+      <p class="hint" style="margin:0 4px">Start and stop timers from your iPhone Lock Screen or Control Center with the Shortcuts app. Each shortcut needs a personal key, which can only start, stop and pause timers.</p>
+      ${newKey ? `<div class="newkey"><b>Your new key</b><code>${esc(newKey)}</code>
+        <button type="button" class="btn ghost" id="copykey">${icon("copy", 16)}Copy key</button>
+        <small>Save it in your shortcut now. You won't be able to see it again.</small></div>` : ""}
+      ${keys.length ? `<div class="keys">${keys.map((k) => `<div class="keyrow"><span><b>${esc(k.name)}</b>
+        <small>created ${when(k.created_at)} · last used ${when(k.last_used_at)}</small></span>
+        <button type="button" class="icon-btn danger" data-delkey="${k.id}" aria-label="Delete key">${icon("trash", 18)}</button></div>`).join("")}</div>` : ""}
+      <button type="button" class="btn" id="newkeybtn">${icon("plus", 16)}Create a key</button>
+      <details class="guide" ${newKey ? "open" : ""}><summary>How to set up a button</summary>
+        <ol>
+          <li>Create a key above and copy it.</li>
+          <li>Open the <b>Shortcuts</b> app, tap <b>+</b>, and name the shortcut, e.g. <i>Deep work</i>.</li>
+          <li>Add the action <b>Get Contents of URL</b> with this URL:
+            <span class="copyrow"><code>${esc(url)}</code><button type="button" class="icon-btn" id="copyurl" aria-label="Copy URL">${icon("copy", 16)}</button></span></li>
+          <li>Tap the arrow to show more options and set:
+            <ul><li>Method: <b>POST</b></li>
+            <li>Headers: add <b>Authorization</b> with the value <b>Bearer</b>, a space, then your key</li>
+            <li>Request Body: <b>JSON</b>, add a Text field <b>activity</b> with the exact activity name, e.g. <i>Deep work</i></li></ul>
+            Without an activity, the button stops whatever is running or restarts the last activity.</li>
+          <li>Add <b>Get Dictionary Value</b> (key <b>message</b>) and then <b>Show Notification</b>, so you see "Started Deep work".</li>
+          <li>Put it on the Lock Screen (iOS 18): touch and hold the Lock Screen → <b>Customize</b> → <b>Lock Screen</b> → tap a bottom button → <b>Shortcut</b> → pick yours. Or add it in Control Center: <b>+</b> → <b>Add a Control</b> → <b>Shortcut</b>.</li>
+        </ol>
+        <p class="hint">Other URLs (same key): <code>/api/stop</code>, <code>/api/pause</code> with JSON <b>minutes</b> = 15, and <code>/api/status</code> (method GET) to see what's running.</p>
+      </details>
+      <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="scclose">Done</button></div>
+    </div>`;
+  $("#copykey")?.addEventListener("click", () => copy(newKey, "Key"));
+  $("#copyurl").onclick = () => copy(url, "URL");
+  $("#scclose").onclick = () => editSheet.close();
+  $("#newkeybtn").onclick = async () => {
+    const name = prompt("Name this key (e.g. My iPhone):", "iPhone") ?? null;
+    if (name === null) return;
+    try { const k = await api("/tokens", { method: "POST", body: { name } }); openShortcuts(k.token); }
+    catch (e) { toast(e.message); }
+  };
+  $$("[data-delkey]").forEach((b) => b.onclick = async () => {
+    if (!confirm("Delete this key? Shortcuts using it will stop working.")) return;
+    try { await api(`/tokens/${b.dataset.delkey}`, { method: "DELETE" }); openShortcuts(); } catch (e) { toast(e.message); }
+  });
+  if (!editSheet.open) editSheet.showModal();
+}
+$("#shortcuts").onclick = () => openShortcuts();
+
+$("#signoutall").onclick = async () => {
+  if (!confirm("Sign out on every device, including this one? This also turns off notifications everywhere and deletes your Shortcuts keys.")) return;
+  try { await api("/signout-all", { method: "POST" }); } catch (e) { return toast(e.message); }
+  await stopNotify();
+  try { (await currentSub())?.unsubscribe(); } catch {}
+  window.google?.accounts?.id?.disableAutoSelect();
+  signedOut();
+  toast("Signed out everywhere");
+};
+
 /* ---------- push notifications ---------- */
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const isStandalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;

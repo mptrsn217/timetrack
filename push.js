@@ -91,12 +91,12 @@ async function sendOnce(uid, key, payload) {
   return true;
 }
 
-function fmtDur(sec) {
+export function fmtDur(sec) {
   sec = Math.max(0, Math.round(sec));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
   return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
 }
-const clockIn = (d, tz) => new Date(d).toLocaleTimeString("en-GB", { timeZone: tz || "UTC", hour: "2-digit", minute: "2-digit" });
+export const clockIn = (d, tz) => new Date(d).toLocaleTimeString("en-GB", { timeZone: tz || "UTC", hour: "2-digit", minute: "2-digit" });
 
 // After a start/stop: show the running timer, or replace it with a "stopped" summary.
 // (iPhone needs every push to show something, so a stop can't silently clear the notification.)

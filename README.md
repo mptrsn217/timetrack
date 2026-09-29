@@ -40,6 +40,14 @@ Tables are created/migrated automatically on start. If the database refuses SSL,
   (table `app_settings`). To manage them yourself set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`
   (`mailto:you@example.com`). Changing the keys disconnects every device until it turns notifications on again.
 
+## iPhone Lock Screen buttons (Shortcuts)
+Profile → *iPhone lock screen buttons* creates a personal key (stored hashed; it can only start, stop, pause and read
+status) and shows a step-by-step guide. Endpoints for Shortcuts, all with header `Authorization: Bearer <key>`:
+- `POST /api/toggle` with JSON `{"activity": "Deep work"}`: start it, or stop it if it's running (no body: stop whatever
+  runs, or restart the last activity)
+- `POST /api/start` / `POST /api/stop`, `POST /api/pause` with `{"minutes": 15}`, `GET /api/status`
+Every response has a `message` field to show in a notification.
+
 ## Local
 ```
 DATABASE_URL=postgres://... GOOGLE_CLIENT_ID=... npm start

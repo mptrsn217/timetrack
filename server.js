@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { OAuth2Client } from "google-auth-library";
-import { initPush, vapidPublicKey, rememberOrigin, sendToUser, notifyRunning, startPushLoop, prefsOf } from "./push.js";
+import { initPush, vapidPublicKey, rememberOrigin, sendToUser, notifyRunning, startPushLoop, prefsOf, fmtDur, clockIn } from "./push.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { Pool } = pg;
@@ -78,26 +78,44 @@ await pool.query(`
   ALTER TABLE entries ADD COLUMN IF NOT EXISTS note TEXT;
   CREATE INDEX IF NOT EXISTS activities_user_idx ON activities(user_id);
   CREATE INDEX IF NOT EXISTS entries_user_started_idx ON entries(user_id, started_at);
+  -- "sign out everywhere": sessions issued before this moment are rejected
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS sessions_valid_after TIMESTAMPTZ;
+  -- a break: which activity to resume, and when
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_activity_id INT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_until TIMESTAMPTZ;
+  -- personal keys for iPhone Shortcuts (only a hash is stored)
+  CREATE TABLE IF NOT EXISTS api_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    token_hash TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_used_at TIMESTAMPTZ
+  );
 `);
 await initPush((text, params) => pool.query(text, params).then((r) => r.rows));
 
-// --- sessions: signed cookie "uid.expiry.hmac" ---
+// --- sessions: signed cookie "uid.issuedAt.expiry.hmac" (older cookies "uid.expiry.hmac" count as issued at 0) ---
 const sign = (v) => crypto.createHmac("sha256", SECRET).update(v).digest("base64url");
 function makeSession(uid) {
-  const v = `${uid}.${Date.now() + SESSION_DAYS * 864e5}`;
+  const now = Date.now();
+  const v = `${uid}.${now}.${now + SESSION_DAYS * 864e5}`;
   return `${v}.${sign(v)}`;
 }
 function readSession(req) {
   const m = /(?:^|;\s*)sid=([^;]+)/.exec(req.get("cookie") || "");
   if (!m) return null;
-  const [uid, exp, mac] = decodeURIComponent(m[1]).split(".");
-  if (!mac) return null;
-  const expected = Buffer.from(sign(`${uid}.${exp}`));
+  const parts = decodeURIComponent(m[1]).split(".");
+  if (parts.length !== 3 && parts.length !== 4) return null;
+  const mac = parts.pop();
+  const [uid, iat, exp] = parts.length === 3 ? parts : [parts[0], "0", parts[1]];
+  const expected = Buffer.from(sign(parts.join(".")));
   const got = Buffer.from(mac);
   if (got.length !== expected.length || !crypto.timingSafeEqual(got, expected)) return null;
   if (Number(exp) < Date.now()) return null;
-  return Number(uid);
+  return { uid: Number(uid), iat: Number(iat) };
 }
+const hashToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 function setCookie(req, res, value, maxAgeMs) {
   res.cookie("sid", value, { httpOnly: true, sameSite: "lax", secure: req.secure, maxAge: maxAgeMs, path: "/" });
 }
@@ -146,12 +164,29 @@ app.post("/auth/logout", (req, res) => {
   res.json({ ok: true });
 });
 
-app.use("/api", jsonOnly, (req, res, next) => {
-  const uid = readSession(req);
-  if (!uid) return res.status(401).json({ error: "Please sign in" });
-  req.uid = uid;
+// what a Shortcuts key may do: control the timer, nothing else
+const TOKEN_ROUTES = new Set(["/start", "/stop", "/toggle", "/status", "/pause", "/pause/resume"]);
+app.use("/api", h(async (req, res, next) => {
+  const bearer = /^Bearer\s+(\S+)$/i.exec(req.get("authorization") || "")?.[1];
+  if (bearer) {
+    // a key isn't sent automatically by browsers, so no CSRF check is needed here
+    const [tok] = await q("UPDATE api_tokens SET last_used_at=now() WHERE token_hash=$1 RETURNING user_id", [hashToken(bearer)]);
+    if (!tok) return res.status(401).json({ error: "Invalid key", message: "Timetrack key not valid. Create a new one in the app." });
+    if (!TOKEN_ROUTES.has(req.path)) return res.status(403).json({ error: "Not allowed with a Shortcuts key" });
+    req.uid = tok.user_id;
+    return next();
+  }
+  if (req.method !== "GET" && !/^application\/json\b/i.test(req.get("content-type") || "")) return res.status(415).json({ error: "JSON required" });
+  const sess = readSession(req);
+  if (!sess) return res.status(401).json({ error: "Please sign in" });
+  const [u] = await q("SELECT sessions_valid_after FROM users WHERE id=$1", [sess.uid]);
+  if (!u || (u.sessions_valid_after && sess.iat < u.sessions_valid_after.getTime())) {
+    res.clearCookie("sid", { path: "/" });
+    return res.status(401).json({ error: "Please sign in" });
+  }
+  req.uid = sess.uid;
   next();
-});
+}));
 
 function validTz(tz) {
   if (typeof tz !== "string" || !tz) return false;
@@ -187,7 +222,15 @@ app.get("/api/state", h(async (req, res) => {
     [tz, req.uid]
   );
   const stats = running ? await sessionStats(req.uid, running.activity_id, running.id, tz) : null;
-  res.json({ user, activities, running: running || null, stats, totals, serverNow: new Date().toISOString() });
+  const [pause] = await q(
+    `SELECT u.pause_activity_id AS activity_id, u.pause_until AS until, a.name, a.color
+     FROM users u JOIN activities a ON a.id=u.pause_activity_id WHERE u.id=$1 AND u.pause_until IS NOT NULL`,
+    [req.uid]
+  );
+  res.json({
+    user, activities, running: running || null, stats, totals, pause: pause || null,
+    streaks: await streaks(req.uid, tz, activities), serverNow: new Date().toISOString(),
+  });
 }));
 
 // Past sessions of an activity (excluding the running one): average and longest length,
@@ -318,20 +361,175 @@ app.delete("/api/activities/:id", h(async (req, res) => {
   pushLater(req.uid);
 }));
 
+// Shortcuts can name the activity ({"activity": "Deep work"}); the app sends its id
+async function findActivity(uid, body) {
+  if (body?.activity_id !== undefined) {
+    const [a] = await q("SELECT id, name FROM activities WHERE id=$1 AND user_id=$2 AND NOT archived", [body.activity_id, uid]);
+    return a;
+  }
+  const name = typeof body?.activity === "string" ? body.activity.trim() : "";
+  if (!name) return null;
+  const [a] = await q("SELECT id, name FROM activities WHERE user_id=$1 AND NOT archived AND lower(name)=lower($2) LIMIT 1", [uid, name]);
+  return a;
+}
+const clearPause = (uid) => q("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_until IS NOT NULL", [uid]);
+
+async function startActivity(uid, act) {
+  await clearPause(uid);
+  await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL", [uid]);
+  const [row] = await q("INSERT INTO entries(user_id,activity_id) VALUES($1,$2) RETURNING *", [uid, act.id]);
+  pushLater(uid);
+  return { ...row, message: `Started ${act.name}` };
+}
+async function stopRunning(uid) {
+  await clearPause(uid);
+  const [e] = await q(
+    `UPDATE entries e SET stopped_at=now() FROM activities a
+     WHERE e.user_id=$1 AND e.stopped_at IS NULL AND a.id=e.activity_id RETURNING a.name, e.started_at, e.stopped_at`,
+    [uid]
+  );
+  if (!e) return { ok: true, message: "Nothing was running" };
+  pushLater(uid);
+  return { ok: true, message: `Stopped ${e.name} · ${fmtDur((e.stopped_at - e.started_at) / 1000)}` };
+}
+
 app.post("/api/start", h(async (req, res) => {
-  const [act] = await q("SELECT id FROM activities WHERE id=$1 AND user_id=$2 AND NOT archived", [req.body.activity_id, req.uid]);
-  if (!act) return res.status(404).json({ error: "Activity not found" });
-  await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL", [req.uid]);
-  const [row] = await q("INSERT INTO entries(user_id,activity_id) VALUES($1,$2) RETURNING *", [req.uid, act.id]);
-  res.json(row);
-  pushLater(req.uid);
+  const act = await findActivity(req.uid, req.body);
+  if (!act) return res.status(404).json({ error: "Activity not found", message: "No activity with that name" });
+  res.json(await startActivity(req.uid, act));
 }));
 
-app.post("/api/stop", h(async (req, res) => {
-  const stopped = await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL RETURNING id", [req.uid]);
-  res.json({ ok: true });
-  if (stopped.length) pushLater(req.uid);
+app.post("/api/stop", h(async (req, res) => res.json(await stopRunning(req.uid))));
+
+// one button for Shortcuts: stop it if it's running, otherwise start it
+// (no activity given: stop whatever runs, or restart the last activity)
+app.post("/api/toggle", h(async (req, res) => {
+  const [running] = await q("SELECT activity_id FROM entries WHERE user_id=$1 AND stopped_at IS NULL LIMIT 1", [req.uid]);
+  const named = req.body?.activity !== undefined || req.body?.activity_id !== undefined;
+  let act = named ? await findActivity(req.uid, req.body) : null;
+  if (named && !act) return res.status(404).json({ error: "Activity not found", message: "No activity with that name" });
+  if (running && (!act || act.id === running.activity_id)) return res.json(await stopRunning(req.uid));
+  if (!act) {
+    [act] = await q(
+      `SELECT a.id, a.name FROM entries e JOIN activities a ON a.id=e.activity_id
+       WHERE e.user_id=$1 AND NOT a.archived AND a.kind<>'limit' ORDER BY e.started_at DESC LIMIT 1`,
+      [req.uid]
+    );
+    if (!act) return res.status(404).json({ error: "Nothing to start", message: "Nothing to start yet" });
+  }
+  res.json(await startActivity(req.uid, act));
 }));
+
+app.get("/api/status", h(async (req, res) => {
+  const [r] = await q(
+    `SELECT a.name, e.started_at FROM entries e JOIN activities a ON a.id=e.activity_id
+     WHERE e.user_id=$1 AND e.stopped_at IS NULL LIMIT 1`,
+    [req.uid]
+  );
+  const [u] = await q("SELECT u.pause_until, a.name FROM users u LEFT JOIN activities a ON a.id=u.pause_activity_id WHERE u.id=$1", [req.uid]);
+  if (r) return res.json({ running: r.name, seconds: Math.round((Date.now() - r.started_at) / 1000), message: `${r.name} · ${fmtDur((Date.now() - r.started_at) / 1000)}` });
+  if (u?.pause_until) return res.json({ running: null, paused: u.name, message: `${u.name} paused · back at ${clockIn(u.pause_until, (await q("SELECT tz FROM users WHERE id=$1", [req.uid]))[0]?.tz)}` });
+  res.json({ running: null, message: "Nothing running" });
+}));
+
+// A break: stop the running entry now, and start the same activity again when the break is over
+app.post("/api/pause", h(async (req, res) => {
+  const minutes = Number.isInteger(req.body?.minutes) ? req.body.minutes : 15;
+  if (minutes < 1 || minutes > 240) return res.status(400).json({ error: "Pause between 1 and 240 minutes" });
+  const [e] = await q(
+    `UPDATE entries e SET stopped_at=now() FROM activities a
+     WHERE e.user_id=$1 AND e.stopped_at IS NULL AND a.id=e.activity_id RETURNING e.activity_id, a.name`,
+    [req.uid]
+  );
+  if (!e) return res.status(400).json({ error: "Nothing is running", message: "Nothing is running" });
+  const [u] = await q(
+    "UPDATE users SET pause_activity_id=$2, pause_until=now() + make_interval(mins => $3) WHERE id=$1 RETURNING pause_until, tz",
+    [req.uid, e.activity_id, minutes]
+  );
+  const back = clockIn(u.pause_until, u.tz);
+  res.json({ ok: true, until: u.pause_until, message: `${e.name} paused · back at ${back}` });
+  sendToUser(req.uid, { title: `${e.name} paused`, body: `Break until ${back}. It continues automatically.`, tag: "running", sticky: true })
+    .catch((err) => console.warn("push failed:", err.message));
+}));
+
+// End a break: early (the user asked) or on time (the server's loop). Only one caller wins the update.
+async function resumePause(uid, onTime) {
+  const [p] = await q(
+    `WITH old AS (SELECT pause_activity_id, pause_until FROM users
+                  WHERE id=$1 AND pause_until IS NOT NULL ${onTime ? "AND pause_until <= now()" : ""} FOR UPDATE)
+     UPDATE users SET pause_activity_id=NULL, pause_until=NULL FROM old WHERE users.id=$1
+     RETURNING old.pause_activity_id AS aid, old.pause_until AS until, users.tz`,
+    [uid]
+  );
+  if (!p) return null;
+  const [act] = await q("SELECT id, name FROM activities WHERE id=$1 AND user_id=$2 AND NOT archived", [p.aid, uid]);
+  const [busy] = await q("SELECT 1 FROM entries WHERE user_id=$1 AND stopped_at IS NULL", [uid]);
+  if (!act || busy) return null;
+  const [row] = await q(
+    "INSERT INTO entries(user_id,activity_id,started_at) VALUES($1,$2,LEAST(now(), $3::timestamptz)) RETURNING started_at",
+    [uid, act.id, p.until]
+  );
+  await sendToUser(uid, {
+    title: onTime ? "Break over" : `${act.name} resumed`,
+    body: `${act.name} continues from ${clockIn(row.started_at, p.tz)}`,
+    tag: "running", sticky: true, actions: [{ action: "stop", title: "Stop" }],
+  }).catch((err) => console.warn("push failed:", err.message));
+  return act;
+}
+
+app.post("/api/pause/resume", h(async (req, res) => {
+  const act = await resumePause(req.uid, false);
+  res.json({ ok: !!act, message: act ? `${act.name} resumed` : "No break to resume" });
+}));
+
+app.post("/api/pause/cancel", h(async (req, res) => {
+  await clearPause(req.uid);
+  res.json({ ok: true });
+}));
+
+// breaks end even when no app is open
+setInterval(async () => {
+  try {
+    const due = await q("SELECT id FROM users WHERE pause_until <= now()");
+    for (const u of due) await resumePause(u.id, true);
+  } catch (e) { console.warn("pause loop failed:", e.message); }
+}, Number(process.env.PAUSE_TICK_MS) || 15e3);
+
+// Daily streaks per activity (days in the user's time zone, by start time):
+// good: days tracked (or days the daily goal was met); cut back: days under the daily limit (or days without it).
+async function streaks(uid, tz, activities) {
+  const rows = await q(
+    `SELECT activity_id, (started_at AT TIME ZONE $2)::date::text AS d,
+       SUM(EXTRACT(EPOCH FROM COALESCE(stopped_at, now()) - started_at))::int AS s
+     FROM entries WHERE user_id=$1 AND started_at > now() - interval '400 days' GROUP BY 1, 2`,
+    [uid, tz]
+  );
+  const [{ today }] = await q("SELECT (now() AT TIME ZONE $1)::date::text AS today", [tz]);
+  const byAct = new Map();
+  for (const r of rows) {
+    if (!byAct.has(r.activity_id)) byAct.set(r.activity_id, new Map());
+    byAct.get(r.activity_id).set(r.d, r.s);
+  }
+  const prev = (d) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
+  const out = {};
+  for (const a of activities) {
+    const days = byAct.get(a.id);
+    if (!days) continue;
+    const dailyGoal = a.goal_period === "day" && a.goal_minutes ? a.goal_minutes * 60 : null;
+    const ok = a.kind === "limit"
+      ? (d) => (days.get(d) || 0) <= (dailyGoal ?? 0)
+      : (d) => (days.get(d) || 0) >= (dailyGoal ?? 60);
+    const first = [...days.keys()].sort()[0];
+    let current = 0, d = today;
+    // an unfinished today doesn't break a good streak; a limit already broken today does
+    if (!ok(d) && a.kind !== "limit") d = prev(d);
+    while (d >= first && ok(d)) { current++; d = prev(d); }
+    let best = 0, run = 0;
+    for (let x = today; x >= first; x = prev(x)) { run = ok(x) ? run + 1 : 0; best = Math.max(best, run); }
+    out[a.id] = { current, best };
+  }
+  return out;
+}
 
 app.get("/api/entries", h(async (req, res) => {
   const search = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
@@ -462,6 +660,35 @@ app.get("/api/export.csv", h(async (req, res) => {
         })
         .join("\n")
   );
+}));
+
+// --- Shortcuts keys ---
+app.get("/api/tokens", h(async (req, res) => {
+  res.json(await q("SELECT id, name, created_at, last_used_at FROM api_tokens WHERE user_id=$1 ORDER BY created_at", [req.uid]));
+}));
+app.post("/api/tokens", h(async (req, res) => {
+  const name = cleanName(req.body.name) || "iPhone Shortcuts";
+  const [{ n }] = await q("SELECT count(*)::int AS n FROM api_tokens WHERE user_id=$1", [req.uid]);
+  if (n >= 10) return res.status(400).json({ error: "You have 10 keys already; delete one first" });
+  const token = "tt_" + crypto.randomBytes(24).toString("base64url");
+  const [row] = await q(
+    "INSERT INTO api_tokens(user_id, name, token_hash) VALUES ($1,$2,$3) RETURNING id, name, created_at",
+    [req.uid, name, hashToken(token)]
+  );
+  res.json({ ...row, token }); // shown once; only the hash is kept
+}));
+app.delete("/api/tokens/:id", h(async (req, res) => {
+  await q("DELETE FROM api_tokens WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
+  res.json({ ok: true });
+}));
+
+// Sign out everywhere: every session issued before now stops working, notifications and Shortcuts keys are removed
+app.post("/api/signout-all", h(async (req, res) => {
+  await q("UPDATE users SET sessions_valid_after=now() WHERE id=$1", [req.uid]);
+  await q("DELETE FROM push_subscriptions WHERE user_id=$1", [req.uid]);
+  await q("DELETE FROM api_tokens WHERE user_id=$1", [req.uid]);
+  res.clearCookie("sid", { path: "/" });
+  res.json({ ok: true });
 }));
 
 app.get("/api/backup.json", h(async (req, res) => {
