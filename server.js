@@ -92,6 +92,23 @@ await pool.query(`
   ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_work INT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_break INT;
   -- personal keys for iPhone Shortcuts (only a hash is stored)
+  -- yes/no daily habits ("Workout?", "Ate sugar?"); kind 'do' = yes is good, 'avoid' = no is good
+  CREATE TABLE IF NOT EXISTS habits (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'do',
+    color TEXT NOT NULL DEFAULT '#3987e5',
+    sort INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS habit_marks (
+    habit_id INT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+    day DATE NOT NULL,
+    value BOOLEAN NOT NULL,
+    PRIMARY KEY (habit_id, day)
+  );
+  CREATE INDEX IF NOT EXISTS habits_user_idx ON habits(user_id);
   CREATE TABLE IF NOT EXISTS api_tokens (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -852,6 +869,71 @@ app.get("/api/export.csv", h(async (req, res) => {
   );
 }));
 
+// --- yes/no habits ---
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+app.get("/api/habits", h(async (req, res) => {
+  const tz = validTz(req.query.tz) ? req.query.tz : "UTC";
+  const habits = await q("SELECT id, name, kind, color, sort FROM habits WHERE user_id=$1 ORDER BY sort, id", [req.uid]);
+  const [{ today }] = await q("SELECT (now() AT TIME ZONE $1)::date::text AS today", [tz]);
+  const marks = await q(
+    `SELECT m.habit_id, m.day::text AS day, m.value FROM habit_marks m JOIN habits h ON h.id=m.habit_id
+     WHERE h.user_id=$1 AND m.day > $2::date - 400 ORDER BY m.day`,
+    [req.uid, today]
+  );
+  res.json({ habits, marks, today });
+}));
+
+app.post("/api/habits", h(async (req, res) => {
+  const name = cleanName(req.body.name);
+  if (!name) return res.status(400).json({ error: "Name required" });
+  const [{ n }] = await q("SELECT count(*)::int AS n FROM habits WHERE user_id=$1", [req.uid]);
+  if (n >= 50) return res.status(400).json({ error: "Limit is 50 habits" });
+  const [row] = await q(
+    `INSERT INTO habits(user_id, name, kind, color, sort)
+     VALUES ($1,$2,$3,$4,(SELECT COALESCE(MAX(sort),0)+1 FROM habits WHERE user_id=$1)) RETURNING id, name, kind, color, sort`,
+    [req.uid, name, req.body.kind === "avoid" ? "avoid" : "do", COLOR_RE.test(req.body.color) ? req.body.color : "#3987e5"]
+  );
+  res.json(row);
+}));
+
+app.put("/api/habits/:id", h(async (req, res) => {
+  const { name, kind, color, sort } = req.body;
+  if (name !== undefined && !cleanName(name)) return res.status(400).json({ error: "Name required" });
+  if (kind !== undefined && !["do", "avoid"].includes(kind)) return res.status(400).json({ error: "Bad kind" });
+  if (color !== undefined && !COLOR_RE.test(color)) return res.status(400).json({ error: "Bad color" });
+  if (sort !== undefined && !Number.isInteger(sort)) return res.status(400).json({ error: "Bad sort" });
+  const [row] = await q(
+    `UPDATE habits SET name=COALESCE($3,name), kind=COALESCE($4,kind), color=COALESCE($5,color), sort=COALESCE($6,sort)
+     WHERE id=$1 AND user_id=$2 RETURNING id, name, kind, color, sort`,
+    [req.params.id, req.uid, cleanName(name), kind, color, sort]
+  );
+  if (!row) return res.status(404).json({ error: "Not found" });
+  res.json(row);
+}));
+
+app.delete("/api/habits/:id", h(async (req, res) => {
+  await q("DELETE FROM habits WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
+  res.json({ ok: true });
+}));
+
+// value: true (yes), false (no) or null (clear the day)
+app.put("/api/habits/:id/marks", h(async (req, res) => {
+  const { day, value } = req.body;
+  if (!DAY_RE.test(day || "") || isNaN(Date.parse(day))) return res.status(400).json({ error: "Bad day" });
+  if (value !== null && typeof value !== "boolean") return res.status(400).json({ error: "Bad value" });
+  const [hb] = await q("SELECT h.id, u.tz FROM habits h JOIN users u ON u.id=h.user_id WHERE h.id=$1 AND h.user_id=$2", [req.params.id, req.uid]);
+  if (!hb) return res.status(404).json({ error: "Not found" });
+  // no marking the future (one day of slack for time zones)
+  const [{ ok }] = await q("SELECT $1::date <= (now() AT TIME ZONE $2)::date + 1 AS ok", [day, hb.tz || "UTC"]);
+  if (!ok) return res.status(400).json({ error: "That day hasn't happened yet" });
+  if (value === null) await q("DELETE FROM habit_marks WHERE habit_id=$1 AND day=$2", [hb.id, day]);
+  else await q(
+    "INSERT INTO habit_marks(habit_id, day, value) VALUES ($1,$2,$3) ON CONFLICT (habit_id, day) DO UPDATE SET value=$3",
+    [hb.id, day, value]
+  );
+  res.json({ ok: true });
+}));
+
 // --- Shortcuts keys ---
 app.get("/api/tokens", h(async (req, res) => {
   res.json(await q("SELECT id, name, created_at, last_used_at FROM api_tokens WHERE user_id=$1 ORDER BY created_at", [req.uid]));
@@ -892,7 +974,12 @@ app.get("/api/backup.json", h(async (req, res) => {
   );
   const stamp = new Date().toISOString().slice(0, 10);
   res.set("Content-Disposition", `attachment; filename="timetrack-backup-${stamp}.json"`);
-  res.json({ app: "timetrack", version: 1, exported_at: new Date().toISOString(), activities, entries });
+  const habits = await q("SELECT id, name, kind, color, sort FROM habits WHERE user_id=$1 ORDER BY id", [req.uid]);
+  const habit_marks = await q(
+    "SELECT m.habit_id, m.day::text AS day, m.value FROM habit_marks m JOIN habits h ON h.id=m.habit_id WHERE h.user_id=$1 ORDER BY m.day",
+    [req.uid]
+  );
+  res.json({ app: "timetrack", version: 2, exported_at: new Date().toISOString(), activities, entries, habits, habit_marks });
 }));
 
 // Merge a backup into this account: activities are matched by name, entries already present are skipped
@@ -903,7 +990,7 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
   }
   if (activities.length > 1000 || entries.length > 200000) return res.status(400).json({ error: "Backup is too large" });
   const client = await pool.connect();
-  let actsAdded = 0, added = 0, skipped = 0;
+  let actsAdded = 0, added = 0, skipped = 0, habitsAdded = 0, marksAdded = 0;
   try {
     await client.query("BEGIN");
     const existing = (await client.query("SELECT id, lower(name) AS key FROM activities WHERE user_id=$1", [req.uid])).rows;
@@ -943,6 +1030,39 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
     );
     added = rowCount;
     skipped += acts.length - rowCount;
+    // habits (backups from version 2): matched by name; marks already there are kept
+    const hbs = Array.isArray(req.body.habits) ? req.body.habits.slice(0, 200) : [];
+    const hMarks = Array.isArray(req.body.habit_marks) ? req.body.habit_marks.slice(0, 200000) : [];
+    const existingH = new Map((await client.query("SELECT id, lower(name) AS key FROM habits WHERE user_id=$1", [req.uid])).rows.map((x) => [x.key, x.id]));
+    const hMap = new Map();
+    for (const hb of hbs) {
+      const name = cleanName(hb?.name);
+      if (!name) continue;
+      let id = existingH.get(name.toLowerCase());
+      if (!id) {
+        ({ rows: [{ id }] } = await client.query(
+          "INSERT INTO habits(user_id, name, kind, color, sort) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+          [req.uid, name, hb.kind === "avoid" ? "avoid" : "do", COLOR_RE.test(hb.color) ? hb.color : "#3987e5", Number.isInteger(hb.sort) ? hb.sort : 0]
+        ));
+        existingH.set(name.toLowerCase(), id);
+        habitsAdded++;
+      }
+      hMap.set(hb.id, id);
+    }
+    const mh = [], md = [], mv = [];
+    for (const m of hMarks) {
+      const id = hMap.get(m?.habit_id);
+      if (!id || !DAY_RE.test(m?.day || "") || typeof m.value !== "boolean") continue;
+      mh.push(id); md.push(m.day); mv.push(m.value);
+    }
+    if (mh.length) {
+      ({ rowCount: marksAdded } = await client.query(
+        `INSERT INTO habit_marks(habit_id, day, value)
+         SELECT DISTINCT ON (x.h, x.d) x.h, x.d, x.v FROM unnest($1::int[], $2::date[], $3::bool[]) AS x(h, d, v)
+         ON CONFLICT (habit_id, day) DO NOTHING`,
+        [mh, md, mv]
+      ));
+    }
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK");
@@ -950,7 +1070,7 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
   } finally {
     client.release();
   }
-  res.json({ activities_added: actsAdded, entries_added: added, entries_skipped: skipped });
+  res.json({ activities_added: actsAdded, entries_added: added, entries_skipped: skipped, habits_added: habitsAdded, habit_days_added: marksAdded });
 }));
 
 app.delete("/api/me", h(async (req, res) => {
