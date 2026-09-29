@@ -244,6 +244,12 @@
   button.rowi:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
   .rowi .chev { color: var(--faint); width: 28px; display: grid; place-items: center; }
   .sheet h3 { margin: 0 4px 14px; font-size: 18px; }
+  .dt { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; grid-template-columns: 1.25fr 1fr; gap: 8px; }
+  .dt legend { padding: 0; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .eform .dt .field { color: var(--ink); font-weight: 500; min-height: 48px; }
+  .eform .dt input[type=time] { font-size: 18px; font-weight: 650; }
+  /* sheets focus their heading on open (so no dropdown or date picker pops up); it needs no focus ring */
+  .sheet h3:focus { outline: none; }
   .eform { display: grid; gap: 12px; }
   .eform label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
   .eform .field { color: var(--ink); font-weight: 500; min-height: 48px; }
@@ -291,6 +297,21 @@
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
     font-weight: 550; text-align: center; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
   #toast.show { opacity: 1; transform: none; }
+  #toast.act { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 8px 8px 8px 16px; }
+  #toast.act.show { pointer-events: auto; }
+  #toast button { color: var(--accent); font-weight: 800; padding: 8px 12px; border-radius: 10px; }
+
+  /* swipe an entry sideways to delete it */
+  .swipe { position: relative; overflow: hidden; }
+  .swipe + .swipe { border-top: 1px solid var(--line); }
+  .swipe .rowi { position: relative; background: var(--surface); touch-action: pan-y; }
+  .swipe .rowi.moving { transition: none; }
+  .swipe .rowi.settle { transition: transform .2s ease; }
+  .swipe .rowi + .rowi, .swipe + .swipe .rowi { border-top: 0; }
+  .swipe-bg { position: absolute; inset: 0; background: var(--danger); color: #fff; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 20px; font-weight: 700; font-size: 14px; }
+  .swipe-bg span { display: inline-flex; align-items: center; gap: 6px; opacity: .5; transition: opacity .15s; }
+  .swipe-bg.ready span { opacity: 1; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -383,13 +404,21 @@ async function api(path, opts = {}) {
   return r.json();
 }
 let toastTimer;
-function toast(msg) {
+function toast(msg, action) {
   const e = $("#toast");
   // an open modal sheet sits in the top layer above the page; move the toast into it so it stays visible
   const host = $("dialog[open]") || document.body;
   if (e.parentElement !== host) host.appendChild(e);
-  e.textContent = msg; e.classList.add("show");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => e.classList.remove("show"), 2800);
+  e.textContent = msg;
+  e.classList.toggle("act", !!action);
+  if (action) {
+    const b = document.createElement("button");
+    b.textContent = action.label;
+    b.onclick = () => { e.classList.remove("show"); action.run(); };
+    e.appendChild(b);
+  }
+  e.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => e.classList.remove("show"), action ? 6000 : 2800);
 }
 function now() { return Date.now() + offset; }
 function fmt(sec) {
@@ -887,20 +916,94 @@ function renderEntryList() {
     const label = key === todayKey ? "Today" : key === yKey ? "Yesterday"
       : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
     html += `<div class="day"><b>${label}</b><span class="num">${fmtShort(items.reduce((s, e) => s + dur(e), 0))}</span></div><div class="card">`;
-    html += items.map((e) => `<button class="rowi entry" data-entry="${e.id}" style="--c:${e.color}" aria-label="Edit ${esc(e.name)} entry">
+    html += items.map((e) => `<div class="swipe">${e.stopped_at ? `<div class="swipe-bg" aria-hidden="true"><span>${icon("trash", 16)}Delete</span><span>Delete${icon("trash", 16)}</span></div>` : ""}
+        <button class="rowi entry" data-entry="${e.id}" style="--c:${e.color}" aria-label="Edit ${esc(e.name)} entry">
         <span class="bar"></span>
         <span><div>${esc(e.name)}</div><div class="t num">${clock(e.started_at)} – ${e.stopped_at ? clock(e.stopped_at) : "now"}</div>
         ${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}</span>
-        <span class="right"><span class="d num">${fmtShort(dur(e))}</span><span class="chev">${icon("edit", 16)}</span></span></button>`).join("");
+        <span class="right"><span class="d num">${fmtShort(dur(e))}</span><span class="chev">${icon("edit", 16)}</span></span></button></div>`).join("");
     html += `</div>`;
   }
-  if (!searchResults) html += `<p class="hint">Tap an entry to change its times, activity or note.</p>`;
+  if (!searchResults) html += `<p class="hint">Tap an entry to change its times, activity or note. Swipe it left or right to delete.</p>`;
   box.innerHTML = html;
-  $$("[data-entry]", box).forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
+  $$("[data-entry]", box).forEach((b) => {
+    b.onclick = () => { if (!b.dataset.swiped) openEntry(findEntry(b.dataset.entry)); };
+    const e = findEntry(b.dataset.entry);
+    if (e?.stopped_at) enableSwipe(b, () => deleteWithUndo(e));
+  });
+}
+
+// Horizontal drag on a row; past ~35% of its width it deletes, otherwise it springs back.
+// Vertical movement is left to the browser (touch-action: pan-y) so the list still scrolls.
+function enableSwipe(row, onDelete) {
+  const bg = row.previousElementSibling;
+  let x0 = 0, y0 = 0, dx = 0, id = null, dragging = false;
+  const set = (x, cls) => { row.className = row.className.replace(/ ?(moving|settle)/g, "") + (cls ? " " + cls : ""); row.style.transform = x ? `translateX(${x}px)` : ""; };
+  row.addEventListener("pointerdown", (ev) => {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    id = ev.pointerId; x0 = ev.clientX; y0 = ev.clientY; dx = 0; dragging = false;
+    delete row.dataset.swiped;
+  });
+  row.addEventListener("pointermove", (ev) => {
+    if (ev.pointerId !== id) return;
+    const mx = ev.clientX - x0, my = ev.clientY - y0;
+    if (!dragging) {
+      if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { id = null; return; } // it's a scroll
+      if (Math.abs(mx) < 10) return;
+      dragging = true;
+      try { row.setPointerCapture(id); } catch {}
+    }
+    dx = mx;
+    set(dx, "moving");
+    bg?.classList.toggle("ready", Math.abs(dx) > row.offsetWidth * 0.35);
+  });
+  const end = (ev) => {
+    if (ev.pointerId !== id) return;
+    id = null;
+    if (!dragging) return;
+    row.dataset.swiped = "1"; // swallow the click that follows the drag
+    setTimeout(() => delete row.dataset.swiped, 50);
+    if (Math.abs(dx) > row.offsetWidth * 0.35) {
+      set(Math.sign(dx) * row.offsetWidth * 1.1, "settle");
+      setTimeout(onDelete, 180);
+    } else {
+      set(0, "settle");
+      bg?.classList.remove("ready");
+    }
+  };
+  row.addEventListener("pointerup", end);
+  row.addEventListener("pointercancel", end);
+}
+
+async function deleteWithUndo(e) {
+  try { await api(`/entries/${e.id}`, { method: "DELETE" }); }
+  catch (err) { toast(err.message); return renderEntryList(); }
+  entries = entries.filter((x) => x.id !== e.id);
+  if (searchResults) searchResults = searchResults.filter((x) => x.id !== e.id);
+  renderHistory();
+  toast(`Deleted ${e.name} ${fmtShort(dur(e))}`, {
+    label: "Undo",
+    run: async () => {
+      try {
+        await api("/entries", { method: "POST", body: { activity_id: e.activity_id, started_at: e.started_at, stopped_at: e.stopped_at, note: e.note } });
+        await refreshAfterEdit();
+        toast("Entry restored");
+      } catch (err) { toast(err.message); }
+    },
+  });
+  load({ background: true });
 }
 
 /* ---------- add / edit entry ---------- */
 const toLocalInput = (d) => { const x = new Date(d); return new Date(x - x.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
+// separate date and time boxes, so changing only the time is one tap
+function dateTimeField(name, label, value) {
+  const [d, t] = toLocalInput(value).split("T");
+  return `<fieldset class="dt"><legend>${label}</legend>
+    <input class="field num" type="date" name="${name}_d" value="${d}" max="${toLocalInput(new Date()).slice(0, 10)}" aria-label="${label} date" required>
+    <input class="field num" type="time" name="${name}_t" value="${t}" aria-label="${label} time" required></fieldset>`;
+}
+const readDT = (f, name) => `${f[name + "_d"].value}T${f[name + "_t"].value}`;
 const editSheet = $("#editsheet");
 const roundTo5 = (ms) => Math.floor(ms / 3e5) * 3e5;
 function openEntry(e) {
@@ -913,19 +1016,16 @@ function openEntry(e) {
   }
   const running = !e.stopped_at;
   const acts = state.activities.some((a) => a.id === e.activity_id) ? state.activities : [{ id: e.activity_id, name: e.name }, ...state.activities];
-  const maxNow = toLocalInput(new Date());
   $("#editsheet .sheet").innerHTML = `
     <div class="grab"></div>
-    <h3>${isNew ? "Add entry" : "Edit entry"}</h3>
+    <h3 tabindex="-1" autofocus>${isNew ? "Add entry" : "Edit entry"}</h3>
     <form id="entryform" class="eform">
       <label>Activity
         <select class="field" name="activity">${acts.map((a) => `<option value="${a.id}" ${a.id === e.activity_id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>
-      <label>Start
-        <input class="field num" type="datetime-local" name="start" value="${toLocalInput(e.started_at)}" max="${maxNow}" required></label>
+      ${dateTimeField("start", "Start", e.started_at)}
       ${running
         ? `<p class="hint" style="margin:0">Still running. Stop it to set an end time.</p>`
-        : `<label>End
-        <input class="field num" type="datetime-local" name="end" value="${toLocalInput(e.stopped_at)}" max="${maxNow}" required></label>`}
+        : dateTimeField("end", "End", e.stopped_at)}
       <label>Note
         <textarea class="field" name="note" rows="2" maxlength="500" placeholder="Optional, e.g. what you worked on">${esc(e.note || "")}</textarea></label>
       <p class="edur num" id="edur"></p>
@@ -937,11 +1037,17 @@ function openEntry(e) {
       </div>
     </form>`;
   const f = $("#entryform");
-  const initial = isNew ? {} : { start: f.start.value, end: f.end?.value };
-  // datetime-local drops seconds; keep the exact stored time for a field the user didn't touch
+  const initial = isNew ? {} : { start: readDT(f, "start"), end: running ? null : readDT(f, "end") };
+  // the inputs drop seconds; keep the exact stored time for a field the user didn't touch
   const values = () => ({
-    start: f.start.value === initial.start ? new Date(e.started_at) : new Date(f.start.value),
-    end: running ? null : f.end.value === initial.end ? new Date(e.stopped_at) : new Date(f.end.value),
+    start: readDT(f, "start") === initial.start ? new Date(e.started_at) : new Date(readDT(f, "start")),
+    end: running ? null : readDT(f, "end") === initial.end ? new Date(e.stopped_at) : new Date(readDT(f, "end")),
+  });
+  // moving the start to another day takes a same-day end along with it
+  let prevStartDay = f.start_d.value;
+  f.start_d.addEventListener("change", () => {
+    if (f.end_d && f.end_d.value === prevStartDay) f.end_d.value = f.start_d.value;
+    prevStartDay = f.start_d.value;
   });
   const upd = () => {
     const { start, end } = values();
@@ -996,11 +1102,10 @@ function maybeForgotten() {
   const since = new Date(r.started_at).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
   $("#editsheet .sheet").innerHTML = `
     <div class="grab"></div>
-    <h3>Still doing ${esc(r.name)}?</h3>
+    <h3 tabindex="-1" autofocus>Still doing ${esc(r.name)}?</h3>
     <form id="forgotform" class="eform">
       <p class="hint" style="margin:0 4px">It has been running for <b class="num">${fmtShort(runSec())}</b>, since ${since}${usual ? `. It usually lasts about ${fmtShort(usual)}` : ""}.</p>
-      <label>When did you actually stop?
-        <input class="field num" type="datetime-local" name="end" value="${toLocalInput(suggest)}" min="${toLocalInput(start)}" max="${toLocalInput(new Date())}" required></label>
+      ${dateTimeField("end", "When did you actually stop?", suggest)}
       <div class="eactions">
         <button type="button" class="btn ghost" id="fkeep">Keep running</button>
         <span></span>
@@ -1017,7 +1122,7 @@ function maybeForgotten() {
   $("#fnow").onclick = async () => { editSheet.close(); await stop(); };
   f.onsubmit = async (ev) => {
     ev.preventDefault();
-    const end = new Date(f.end.value);
+    const end = new Date(readDT(f, "end"));
     if (isNaN(end) || end <= start) return toast("Pick a time after it started");
     try {
       await api(`/entries/${r.id}`, { method: "PUT", body: { stopped_at: end.toISOString() } });
@@ -1047,7 +1152,7 @@ function openGoal(act, onSaved) {
   const mins = act.goal_minutes || (limit ? 30 : 60);
   $("#editsheet .sheet").innerHTML = `
     <div class="grab"></div>
-    <h3>${esc(act.name)}: ${limit ? "limit" : "goal"}</h3>
+    <h3 tabindex="-1" autofocus>${esc(act.name)}: ${limit ? "limit" : "goal"}</h3>
     <form id="goalform" class="eform">
       <p class="hint" style="margin:0 4px">${limit ? "Try to stay under this much time. The tile warns you when you go over." : "Aim for at least this much time. The tile fills up as you go."}</p>
       <div class="seg" role="tablist" aria-label="Period">
