@@ -241,7 +241,7 @@
 
   /* entry rows + editor */
   button.rowi { width: 100%; text-align: left; }
-  button.rowi:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  @media (hover: hover) { button.rowi:hover { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); } }
   .rowi .chev { color: var(--faint); width: 28px; display: grid; place-items: center; }
   .sheet h3 { margin: 0 4px 14px; font-size: 18px; }
   .dt { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; grid-template-columns: 1.25fr 1fr; gap: 8px; }
@@ -308,10 +308,11 @@
   .swipe .rowi.moving { transition: none; }
   .swipe .rowi.settle { transition: transform .2s ease; }
   .swipe .rowi + .rowi, .swipe + .swipe .rowi { border-top: 0; }
-  .swipe-bg { position: absolute; inset: 0; background: var(--danger); color: #fff; display: flex; align-items: center;
+  .swipe-bg { position: absolute; inset: 0; background: var(--danger); color: #fff; display: none; align-items: center;
     justify-content: space-between; padding: 0 20px; font-weight: 700; font-size: 14px; }
   .swipe-bg span { display: inline-flex; align-items: center; gap: 6px; opacity: .5; transition: opacity .15s; }
   .swipe-bg.ready span { opacity: 1; }
+  .swipe.swiping .swipe-bg { display: flex; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -938,7 +939,11 @@ function renderEntryList() {
 function enableSwipe(row, onDelete) {
   const bg = row.previousElementSibling;
   let x0 = 0, y0 = 0, dx = 0, id = null, dragging = false;
-  const set = (x, cls) => { row.className = row.className.replace(/ ?(moving|settle)/g, "") + (cls ? " " + cls : ""); row.style.transform = x ? `translateX(${x}px)` : ""; };
+  const set = (x, cls) => {
+    row.className = row.className.replace(/ ?(moving|settle)/g, "") + (cls ? " " + cls : "");
+    row.style.transform = x ? `translateX(${x}px)` : "";
+    row.parentElement.classList.toggle("swiping", !!x);
+  };
   row.addEventListener("pointerdown", (ev) => {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
     id = ev.pointerId; x0 = ev.clientX; y0 = ev.clientY; dx = 0; dragging = false;
