@@ -22,6 +22,46 @@ $("#me").onclick = () => {
 };
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
+// Swipe a sheet down to close it. Only starts when the sheet is scrolled to the top and the finger
+// isn't in a text field or a horizontally scrolling area; a short drag springs back.
+function enableSheetDrag(dlg) {
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, dragging = false;
+  const settle = (transform, then) => {
+    dlg.style.transition = "transform .2s ease";
+    dlg.style.transform = transform;
+    setTimeout(() => { dlg.style.transition = ""; then?.(); }, 200);
+  };
+  dlg.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || dlg.scrollTop > 0) return;
+    if (e.target.closest("input, textarea, select, .hscroll, .cchart")) return;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); dragging = false;
+  }, { passive: true });
+  dlg.addEventListener("touchmove", (e) => {
+    if (y0 === null) return;
+    const d = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+    if (!dragging) {
+      if (d > 8 && d > Math.abs(dx)) { dragging = true; dlg.style.transition = "none"; }
+      else if (d < -4 || Math.abs(dx) > 10) { y0 = null; return; } // scrolling up or sideways: not ours
+      else return;
+    }
+    e.preventDefault(); // the sheet moves instead of the page
+    dy = Math.max(0, d);
+    dlg.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (y0 === null) return;
+    y0 = null;
+    if (!dragging) return;
+    const speed = dy / Math.max(1, Date.now() - t0); // px per ms
+    if (dy > dlg.offsetHeight * 0.3 || (dy > 40 && speed > 0.6)) {
+      settle(`translateY(${dlg.offsetHeight}px)`, () => { dlg.close(); dlg.style.transform = ""; });
+    } else settle("");
+  };
+  dlg.addEventListener("touchend", end);
+  dlg.addEventListener("touchcancel", end);
+}
+[sheet, editSheet, liveDlg].forEach(enableSheetDrag);
+
 function signedOut() {
   sheet.close();
   cacheClear();
