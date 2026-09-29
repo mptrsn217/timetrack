@@ -109,6 +109,15 @@ await pool.query(`
     PRIMARY KEY (habit_id, day)
   );
   CREATE INDEX IF NOT EXISTS habits_user_idx ON habits(user_id);
+  -- counters (kind 'count'): an optional daily target, the + button step, and one number per day
+  ALTER TABLE habits ADD COLUMN IF NOT EXISTS target INT;
+  ALTER TABLE habits ADD COLUMN IF NOT EXISTS step INT NOT NULL DEFAULT 1;
+  CREATE TABLE IF NOT EXISTS habit_counts (
+    habit_id INT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+    day DATE NOT NULL,
+    count INT NOT NULL CHECK (count >= 0),
+    PRIMARY KEY (habit_id, day)
+  );
   CREATE TABLE IF NOT EXISTS api_tokens (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -873,14 +882,19 @@ app.get("/api/export.csv", h(async (req, res) => {
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 app.get("/api/habits", h(async (req, res) => {
   const tz = validTz(req.query.tz) ? req.query.tz : "UTC";
-  const habits = await q("SELECT id, name, kind, color, sort FROM habits WHERE user_id=$1 ORDER BY sort, id", [req.uid]);
+  const habits = await q("SELECT id, name, kind, color, sort, target, step FROM habits WHERE user_id=$1 ORDER BY sort, id", [req.uid]);
   const [{ today }] = await q("SELECT (now() AT TIME ZONE $1)::date::text AS today", [tz]);
   const marks = await q(
     `SELECT m.habit_id, m.day::text AS day, m.value FROM habit_marks m JOIN habits h ON h.id=m.habit_id
      WHERE h.user_id=$1 AND m.day > $2::date - 400 ORDER BY m.day`,
     [req.uid, today]
   );
-  res.json({ habits, marks, today });
+  const counts = await q(
+    `SELECT c.habit_id, c.day::text AS day, c.count FROM habit_counts c JOIN habits h ON h.id=c.habit_id
+     WHERE h.user_id=$1 AND c.day > $2::date - 400 ORDER BY c.day`,
+    [req.uid, today]
+  );
+  res.json({ habits, marks, counts, today });
 }));
 
 app.post("/api/habits", h(async (req, res) => {
@@ -888,10 +902,13 @@ app.post("/api/habits", h(async (req, res) => {
   if (!name) return res.status(400).json({ error: "Name required" });
   const [{ n }] = await q("SELECT count(*)::int AS n FROM habits WHERE user_id=$1", [req.uid]);
   if (n >= 50) return res.status(400).json({ error: "Limit is 50 habits" });
+  const kind = ["avoid", "count"].includes(req.body.kind) ? req.body.kind : "do";
+  const cfg = countCfg(req.body);
+  if (cfg.error) return res.status(400).json({ error: cfg.error });
   const [row] = await q(
-    `INSERT INTO habits(user_id, name, kind, color, sort)
-     VALUES ($1,$2,$3,$4,(SELECT COALESCE(MAX(sort),0)+1 FROM habits WHERE user_id=$1)) RETURNING id, name, kind, color, sort`,
-    [req.uid, name, req.body.kind === "avoid" ? "avoid" : "do", COLOR_RE.test(req.body.color) ? req.body.color : "#3987e5"]
+    `INSERT INTO habits(user_id, name, kind, color, target, step, sort)
+     VALUES ($1,$2,$3,$4,$5,$6,(SELECT COALESCE(MAX(sort),0)+1 FROM habits WHERE user_id=$1)) RETURNING id, name, kind, color, sort, target, step`,
+    [req.uid, name, kind, COLOR_RE.test(req.body.color) ? req.body.color : "#3987e5", cfg.target ?? null, cfg.step ?? 1]
   );
   res.json(row);
 }));
@@ -899,13 +916,16 @@ app.post("/api/habits", h(async (req, res) => {
 app.put("/api/habits/:id", h(async (req, res) => {
   const { name, kind, color, sort } = req.body;
   if (name !== undefined && !cleanName(name)) return res.status(400).json({ error: "Name required" });
-  if (kind !== undefined && !["do", "avoid"].includes(kind)) return res.status(400).json({ error: "Bad kind" });
+  if (kind !== undefined && !["do", "avoid", "count"].includes(kind)) return res.status(400).json({ error: "Bad kind" });
+  const cfg = countCfg(req.body);
+  if (cfg.error) return res.status(400).json({ error: cfg.error });
   if (color !== undefined && !COLOR_RE.test(color)) return res.status(400).json({ error: "Bad color" });
   if (sort !== undefined && !Number.isInteger(sort)) return res.status(400).json({ error: "Bad sort" });
   const [row] = await q(
-    `UPDATE habits SET name=COALESCE($3,name), kind=COALESCE($4,kind), color=COALESCE($5,color), sort=COALESCE($6,sort)
-     WHERE id=$1 AND user_id=$2 RETURNING id, name, kind, color, sort`,
-    [req.params.id, req.uid, cleanName(name), kind, color, sort]
+    `UPDATE habits SET name=COALESCE($3,name), kind=COALESCE($4,kind), color=COALESCE($5,color), sort=COALESCE($6,sort),
+       target=CASE WHEN $7 THEN $8::int ELSE target END, step=COALESCE($9, step)
+     WHERE id=$1 AND user_id=$2 RETURNING id, name, kind, color, sort, target, step`,
+    [req.params.id, req.uid, cleanName(name), kind, color, sort, "target" in req.body, cfg.target ?? null, cfg.step ?? null]
   );
   if (!row) return res.status(404).json({ error: "Not found" });
   res.json(row);
@@ -914,6 +934,52 @@ app.put("/api/habits/:id", h(async (req, res) => {
 app.delete("/api/habits/:id", h(async (req, res) => {
   await q("DELETE FROM habits WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
   res.json({ ok: true });
+}));
+
+// counters: target null = no target; step is what one tap of + adds
+function countCfg(body) {
+  const out = {};
+  if ("target" in body) {
+    if (body.target !== null && !(Number.isInteger(body.target) && body.target >= 1 && body.target <= 100000)) return { error: "Target 1–100000" };
+    out.target = body.target;
+  }
+  if (body.step !== undefined) {
+    if (!(Number.isInteger(body.step) && body.step >= 1 && body.step <= 1000)) return { error: "Step 1–1000" };
+    out.step = body.step;
+  }
+  return out;
+}
+async function countHabit(uid, id, day) {
+  if (!DAY_RE.test(day || "") || isNaN(Date.parse(day))) return [400, "Bad day"];
+  const [hb] = await q("SELECT h.id, h.kind, u.tz FROM habits h JOIN users u ON u.id=h.user_id WHERE h.id=$1 AND h.user_id=$2", [id, uid]);
+  if (!hb) return [404, "Not found"];
+  if (hb.kind !== "count") return [400, "Not a counter"];
+  const [{ ok }] = await q("SELECT $1::date <= (now() AT TIME ZONE $2)::date + 1 AS ok", [day, hb.tz || "UTC"]);
+  if (!ok) return [400, "That day hasn't happened yet"];
+  return null;
+}
+// add to a day's count (negative to take away); atomic, so fast repeated taps all count
+app.post("/api/habits/:id/add", h(async (req, res) => {
+  const { day, delta } = req.body;
+  if (!Number.isInteger(delta) || Math.abs(delta) > 100000) return res.status(400).json({ error: "Bad amount" });
+  const bad = await countHabit(req.uid, req.params.id, day);
+  if (bad) return res.status(bad[0]).json({ error: bad[1] });
+  const [row] = await q(
+    `INSERT INTO habit_counts(habit_id, day, count) VALUES ($1,$2,GREATEST(0,$3))
+     ON CONFLICT (habit_id, day) DO UPDATE SET count=LEAST(10000000, GREATEST(0, habit_counts.count + $3)) RETURNING count`,
+    [req.params.id, day, delta]
+  );
+  res.json({ count: row.count });
+}));
+// set a day's count exactly (0 clears it)
+app.put("/api/habits/:id/count", h(async (req, res) => {
+  const { day, count } = req.body;
+  if (!Number.isInteger(count) || count < 0 || count > 10000000) return res.status(400).json({ error: "Bad count" });
+  const bad = await countHabit(req.uid, req.params.id, day);
+  if (bad) return res.status(bad[0]).json({ error: bad[1] });
+  if (count === 0) await q("DELETE FROM habit_counts WHERE habit_id=$1 AND day=$2", [req.params.id, day]);
+  else await q("INSERT INTO habit_counts(habit_id, day, count) VALUES ($1,$2,$3) ON CONFLICT (habit_id, day) DO UPDATE SET count=$3", [req.params.id, day, count]);
+  res.json({ count });
 }));
 
 // value: true (yes), false (no) or null (clear the day)
@@ -974,12 +1040,16 @@ app.get("/api/backup.json", h(async (req, res) => {
   );
   const stamp = new Date().toISOString().slice(0, 10);
   res.set("Content-Disposition", `attachment; filename="timetrack-backup-${stamp}.json"`);
-  const habits = await q("SELECT id, name, kind, color, sort FROM habits WHERE user_id=$1 ORDER BY id", [req.uid]);
+  const habits = await q("SELECT id, name, kind, color, sort, target, step FROM habits WHERE user_id=$1 ORDER BY id", [req.uid]);
+  const habit_counts = await q(
+    "SELECT c.habit_id, c.day::text AS day, c.count FROM habit_counts c JOIN habits h ON h.id=c.habit_id WHERE h.user_id=$1 ORDER BY c.day",
+    [req.uid]
+  );
   const habit_marks = await q(
     "SELECT m.habit_id, m.day::text AS day, m.value FROM habit_marks m JOIN habits h ON h.id=m.habit_id WHERE h.user_id=$1 ORDER BY m.day",
     [req.uid]
   );
-  res.json({ app: "timetrack", version: 2, exported_at: new Date().toISOString(), activities, entries, habits, habit_marks });
+  res.json({ app: "timetrack", version: 3, exported_at: new Date().toISOString(), activities, entries, habits, habit_marks, habit_counts });
 }));
 
 // Merge a backup into this account: activities are matched by name, entries already present are skipped
@@ -1041,8 +1111,11 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
       let id = existingH.get(name.toLowerCase());
       if (!id) {
         ({ rows: [{ id }] } = await client.query(
-          "INSERT INTO habits(user_id, name, kind, color, sort) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-          [req.uid, name, hb.kind === "avoid" ? "avoid" : "do", COLOR_RE.test(hb.color) ? hb.color : "#3987e5", Number.isInteger(hb.sort) ? hb.sort : 0]
+          "INSERT INTO habits(user_id, name, kind, color, sort, target, step) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+          [req.uid, name, ["avoid", "count"].includes(hb.kind) ? hb.kind : "do", COLOR_RE.test(hb.color) ? hb.color : "#3987e5",
+            Number.isInteger(hb.sort) ? hb.sort : 0,
+            Number.isInteger(hb.target) && hb.target >= 1 && hb.target <= 100000 ? hb.target : null,
+            Number.isInteger(hb.step) && hb.step >= 1 && hb.step <= 1000 ? hb.step : 1]
         ));
         existingH.set(name.toLowerCase(), id);
         habitsAdded++;
@@ -1062,6 +1135,22 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
          ON CONFLICT (habit_id, day) DO NOTHING`,
         [mh, md, mv]
       ));
+    }
+    const cnts = Array.isArray(req.body.habit_counts) ? req.body.habit_counts.slice(0, 200000) : [];
+    const ch = [], cd = [], cc = [];
+    for (const c of cnts) {
+      const id = hMap.get(c?.habit_id);
+      if (!id || !DAY_RE.test(c?.day || "") || !Number.isInteger(c.count) || c.count < 1 || c.count > 10000000) continue;
+      ch.push(id); cd.push(c.day); cc.push(c.count);
+    }
+    if (ch.length) {
+      const { rowCount } = await client.query(
+        `INSERT INTO habit_counts(habit_id, day, count)
+         SELECT DISTINCT ON (x.h, x.d) x.h, x.d, x.c FROM unnest($1::int[], $2::date[], $3::int[]) AS x(h, d, c)
+         ON CONFLICT (habit_id, day) DO NOTHING`,
+        [ch, cd, cc]
+      );
+      marksAdded += rowCount;
     }
     await client.query("COMMIT");
   } catch (e) {
