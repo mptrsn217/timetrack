@@ -81,7 +81,7 @@
   .hero .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--c); animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .35; } }
   .hero .name { font-size: 22px; font-weight: 700; margin-top: 2px; letter-spacing: -.01em; overflow-wrap: anywhere; }
-  .hero .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 18px; }
+  .hero .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 18px; flex-wrap: wrap; row-gap: 12px; }
   .hero .clock { font-size: clamp(44px, 14vw, 60px); font-weight: 750; letter-spacing: -.03em; line-height: 1; }
   .hero .since { color: var(--muted); font-size: 13px; margin-top: 6px; }
   .btn-stop { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--bg);
@@ -135,7 +135,7 @@
   .grow .gtrack span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
   .grow .gtrack.over span { background: var(--danger); }
   .setgoals { justify-self: start; }
-  .hbtns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .hbtns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
   .btn-pause { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
     background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); }
   .btn-pause:active { transform: scale(.95); }
@@ -468,6 +468,66 @@
   .hfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
   .hlegend { display: inline-flex; align-items: center; gap: 3px; --cell: 10px; }
 
+  /* live screen */
+  .hero { position: relative; }
+  .lvopen { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+    color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); z-index: 1; }
+  .hero .clock { cursor: pointer; }
+  dialog.livedlg { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; box-shadow: none;
+    background: color-mix(in srgb, var(--c) 9%, var(--bg)); overflow-y: auto; }
+  dialog.livedlg::backdrop { background: var(--bg); }
+  .lv { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; gap: 12px;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 12px; }
+  .lvtop { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; }
+  .lvname { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 17px; min-width: 0; }
+  .lvname .pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--c); animation: pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
+  .lvwake { color: var(--faint); }
+  .lvwake.on { color: var(--accent); }
+  .lvhero { display: grid; justify-items: center; gap: 10px; text-align: center; }
+  .lvclockwrap { position: relative; width: min(74vw, 320px, 34dvh); aspect-ratio: 1; }
+  .lvring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .lvring circle { fill: none; stroke-width: 7; }
+  .lvring .track { stroke: color-mix(in srgb, var(--c) 16%, var(--surface-2)); }
+  .lvring .prog { stroke-linecap: round; transition: stroke-dashoffset .9s linear; }
+  .lvclock { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px; }
+  .lvclock small { color: var(--muted); font-size: 14px; font-weight: 600; }
+  .lvclock b { font-size: clamp(40px, min(15vw, 8dvh), 78px); font-weight: 750; letter-spacing: -.03em; line-height: 1.05; }
+  .lvclock span { color: var(--muted); font-size: 13px; }
+  .lvmsg { margin: 0; font-size: 20px; font-weight: 650; line-height: 1.3; max-width: 440px; display: flex; gap: 8px; align-items: center; justify-content: center; }
+  .lvmsg.good { color: var(--good); }
+  .lvmsg.bad { color: var(--danger); }
+  .lvfacts { margin: 0; color: var(--muted); font-size: 13px; }
+  .lvcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .lvcard { background: var(--surface); border-radius: 16px; padding: 10px 12px; display: grid; gap: 4px; box-shadow: var(--shadow); align-content: start; }
+  .lvcard small { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .lvcard b { font-size: 20px; letter-spacing: -.01em; }
+  .lvcard b em { font-style: normal; font-size: 15px; color: var(--muted); font-weight: 600; }
+  .lvcard > span { font-size: 13px; color: var(--muted); }
+  .lvcard .delta { font-weight: 700; white-space: nowrap; }
+  .lvcard .delta.better { color: var(--good); } .lvcard .delta.worse { color: var(--danger); }
+  .lvcard .linkbtn { justify-self: start; }
+  .lvbar { display: block; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .lvbar > i { display: block; height: 100%; background: var(--c); border-radius: 99px; }
+  .lvbar.over > i { background: var(--danger); }
+  .lvrank { background: var(--surface); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; box-shadow: var(--shadow); }
+  .lvrank small { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .lvrrow { display: grid; grid-template-columns: minmax(0, 7em) 1fr auto; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); }
+  .lvrrow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lvrrow > i { display: block; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .lvrrow > i > i { display: block; height: 100%; border-radius: 99px; background: color-mix(in srgb, var(--c) 45%, var(--surface-2)); }
+  .lvrrow.me { color: var(--ink); font-weight: 700; }
+  .lvrrow.me > i > i { background: var(--c); }
+  /* buttons stay reachable at the bottom even when the stats need scrolling */
+  .lvactions { display: flex; gap: 10px; margin-top: auto; position: sticky; bottom: 0; z-index: 2;
+    padding: 10px 0 calc(env(safe-area-inset-bottom) + 4px);
+    background: linear-gradient(transparent, color-mix(in srgb, var(--c) 9%, var(--bg)) 30%); }
+  .lvbtn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 10px; border-radius: 16px;
+    background: var(--surface); box-shadow: var(--shadow); font-weight: 700; }
+  .lvbtn.stop { background: var(--ink); color: var(--bg); }
+  .lvbtn:active { transform: scale(.97); }
+  .lvauto { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: var(--muted); }
+  @media (min-height: 760px) { .lvmsg { font-size: 22px; } }
+
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
     font-weight: 550; text-align: center; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
@@ -525,6 +585,8 @@
   <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/></symbol>
   <symbol id="i-skip" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.8v12.4a.8.8 0 0 0 1.2.7l9-6.2a.8.8 0 0 0 0-1.4l-9-6.2A.8.8 0 0 0 6 5.8z"/><rect x="16.5" y="5" width="2.6" height="14" rx="1"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -568,6 +630,7 @@
     </div>
   </div>
 </dialog>
+<dialog id="live" class="livedlg" aria-label="Live screen"></dialog>
 <dialog id="editsheet"><div class="sheet"></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -651,6 +714,7 @@ async function load({ background = false } = {}) {
     // never redraw under someone's fingers: a background refresh would wipe what they are typing
     if (background && editing()) return;
     render();
+    if (liveDlg.open) liveActive() ? renderLive() : closeLive();
     maybeForgotten();
   } catch (e) { if (signedIn && !background) toast(e.message); if (!signedIn) render(); }
 }
@@ -796,6 +860,193 @@ function tileBar(a) {
   return `<span class="tbar${g.over ? " over" : ""}${g.done ? " done" : ""}" aria-hidden="true"><i style="width:${g.pct * 100}%"></i></span>`;
 }
 
+/* ---------- live screen: the running activity, full screen, for a phone propped up in front of you ---------- */
+const liveDlg = $("#live");
+let wakeLock = null;
+const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v === "1"; } catch { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch {} };
+const keepOnPref = () => pref("liveKeepOn", true);
+const autoLivePref = () => pref("liveAuto", false);
+const canWake = "wakeLock" in navigator;
+async function setWake(on) {
+  try {
+    if (on && canWake && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch { wakeLock = null; }
+}
+// the screen lock is dropped whenever the page is hidden; take it again when it's back
+document.addEventListener("visibilitychange", () => { if (!document.hidden && liveDlg.open && keepOnPref()) setWake(true); });
+const liveActive = () => !!(state.running || state.focus || state.pause);
+function openLive() {
+  if (!liveActive()) return;
+  renderLive();
+  if (!liveDlg.open) liveDlg.showModal();
+  if (keepOnPref()) setWake(true);
+}
+function closeLive() { if (liveDlg.open) liveDlg.close(); }
+liveDlg.addEventListener("close", () => setWake(false));
+
+function liveModel() {
+  const r = state.running, f = state.focus, p = !r ? state.pause : null;
+  const id = r?.activity_id ?? f?.activity_id ?? p?.activity_id;
+  const a = state.activities.find((x) => x.id === id) || { id, name: r?.name || f?.name || p?.name, color: f?.color || p?.color, kind: "good" };
+  const limit = a.kind === "limit";
+  const st = r ? state.stats : null;
+  const el = r ? runSec() : 0;
+  const m = { a, limit, st, el, tone: "", ringColor: a.color || "var(--accent)", pct: 0 };
+  if (f) {
+    const len = (f.phase === "work" ? f.work : f.brk) * 60;
+    m.big = fmt(Math.max(0, focusLeft()));
+    m.label = f.phase === "work" ? `Focus · round ${f.round} of ${f.rounds}` : `Break · round ${f.round + 1} of ${f.rounds} next`;
+    m.sub = f.phase === "work" ? `${fmt(el)} this session · break at ${clock(f.ends)}` : `Focus resumes at ${clock(f.ends)}`;
+    m.pct = 1 - Math.max(0, focusLeft()) / len;
+    m.msg = f.phase === "work"
+      ? (focusLeft() > 120 ? `Stay with it. ${fmtShort(focusLeft() + 59)} left in this round` : "Almost there. Finish strong")
+      : "Stand up, stretch, drink some water";
+  } else if (p) {
+    m.big = fmt(Math.max(0, pauseLeft()));
+    m.label = "On a break";
+    m.sub = `${a.name} continues at ${clock(p.until)}`;
+    m.msg = "Take a breath. You'll be notified when it's time";
+  } else {
+    m.big = fmt(el);
+    m.label = "Tracking now";
+    m.sub = `Started ${clock(r.started_at)}`;
+    if (!st?.sessions) {
+      m.pct = Math.min(el / 1800, 1);
+      m.msg = limit ? "Tracking it is the first step. Stop whenever you're ready" : "First session. Every minute counts";
+    } else if (!limit) {
+      if (el < st.avg) { m.pct = el / st.avg; m.msg = `${fmtShort(st.avg - el + 59)} to beat your usual ${fmtShort(st.avg)}`; }
+      else if (el < st.max) { m.pct = el / st.max; m.msg = `Past your usual! ${fmtShort(st.max - el + 59)} to a new record`; m.tone = "good"; }
+      else { m.pct = 1; m.msg = `New record! ${fmtShort(el - st.max)} longer than ever`; m.tone = "good"; }
+    } else if (el < st.avg) {
+      m.pct = el / st.avg;
+      m.msg = `You usually stop around ${fmtShort(st.avg)}. ${fmtShort(st.avg - el + 59)} to go`;
+    } else {
+      m.pct = 1; m.tone = "bad"; m.ringColor = "var(--danger)";
+      m.msg = `Longer than usual (${fmtShort(st.avg)}). Time to stop?`;
+    }
+    const g = goalState(a);
+    if (limit && g?.over) { m.tone = "bad"; m.ringColor = "var(--danger)"; m.msg = `Over your limit by ${fmtShort(g.v - g.g)}. Time to stop?`; }
+  }
+  return m;
+}
+
+function liveBody() {
+  const m = liveModel(), a = m.a, st = m.st;
+  const C = 2 * Math.PI * 54;
+  const ring = `<svg class="lvring" viewBox="0 0 120 120" aria-hidden="true">
+    <circle cx="60" cy="60" r="54" class="track"/>
+    <circle cx="60" cy="60" r="54" class="prog" style="stroke:${m.ringColor};stroke-dasharray:${C};stroke-dashoffset:${C * (1 - Math.min(1, Math.max(0, m.pct)))}"/></svg>`;
+  const cmp = (v, ref, limit) => {
+    if (!ref) return "";
+    const d = v - ref;
+    if (Math.abs(d) < 60) return `<span class="delta">about the same</span>`;
+    return `<span class="delta ${(d > 0) === !limit ? "better" : "worse"}">${d > 0 ? "▲" : "▼"} ${fmtShort(Math.abs(d))}</span>`;
+  };
+  const today = total(a.id, "today"), week = total(a.id, "week");
+  const cards = [];
+  if (state.running) {
+    cards.push(`<div class="lvcard"><small>Today</small><b class="num">${fmtShort(today)}</b>
+      <span>${st?.dayAvg ? `usual day ${fmtShort(st.dayAvg)} ${cmp(today, st.dayAvg, m.limit)}` : "no usual day yet"}</span></div>`);
+    cards.push(`<div class="lvcard"><small>This week</small><b class="num">${fmtShort(week)}</b>
+      <span>${st?.lastWeekToDate ? `vs last week by now ${cmp(week, st.lastWeekToDate, m.limit)}` : "nothing last week by now"}</span></div>`);
+    const g = goalState(a);
+    if (g) {
+      const left = g.g - g.v;
+      const txt = m.limit
+        ? (g.over ? `<span class="delta worse">over by ${fmtShort(-left)}</span>` : `limit reached at ${clock(now() + left * 1000)}`)
+        : (g.done ? `<span class="delta better">goal reached</span>` : `goal reached at ${clock(now() + left * 1000)}`);
+      cards.push(`<div class="lvcard"><small>${m.limit ? "Limit" : "Goal"} ${periodWord(a.goal_period)}</small>
+        <b class="num">${fmtShort(g.v)} <em>/ ${fmtShort(g.g)}</em></b>
+        <i class="lvbar${g.over ? " over" : ""}"><i style="width:${g.pct * 100}%"></i></i><span>${txt}</span></div>`);
+    } else {
+      cards.push(`<div class="lvcard"><small>${m.limit ? "Limit" : "Goal"}</small><b>None yet</b>
+        <button class="linkbtn" id="lvsetgoal">${icon("flag", 14)}Set ${m.limit ? "a limit" : "a goal"}</button></div>`);
+    }
+    const sk = state.streaks?.[a.id];
+    cards.push(`<div class="lvcard"><small>${m.limit ? "Days under limit" : "Streak"}</small>
+      <b class="num">${sk?.current || 0} ${sk?.current === 1 ? "day" : "days"}</b>
+      <span>${sk?.best > (sk?.current || 0) ? `best ${sk.best} days` : sk?.current ? "your best yet" : "start one today"}</span></div>`);
+  }
+  // how it ranks among the other activities of the same kind today
+  let rank = "";
+  if (state.running) {
+    const same = state.activities.filter((x) => (x.kind === "limit") === m.limit).map((x) => ({ x, v: total(x.id, "today") }))
+      .sort((p, q) => q.v - p.v);
+    const max = Math.max(1, ...same.map((s) => s.v));
+    const pos = same.findIndex((s) => s.x.id === a.id) + 1;
+    const sum = same.reduce((t, s) => t + s.v, 0);
+    const title = m.limit
+      ? `Habits you're cutting back · ${fmtShort(sum)} today`
+      : `${pos === 1 ? "Your top activity today" : `#${pos} of your ${same.length} activities today`}`;
+    rank = same.length > 1 ? `<div class="lvrank"><small>${title}</small>${same.slice(0, 3).map((s) => `
+      <div class="lvrrow${s.x.id === a.id ? " me" : ""}" style="--c:${s.x.color}"><span>${esc(s.x.name)}</span>
+        <i><i style="width:${(s.v / max) * 100}%"></i></i><b class="num">${fmtShort(s.v)}</b></div>`).join("")}</div>` : "";
+  }
+  return `<div class="lvhero">
+      <div class="lvclockwrap">${ring}<div class="lvclock"><small>${esc(m.label)}</small><b class="num">${m.big}</b><span>${esc(m.sub)}</span></div></div>
+      <p class="lvmsg ${m.tone}">${m.tone === "bad" ? icon("alert", 18) : ""}${esc(m.msg)}</p>
+      ${st?.sessions && !state.focus ? `<p class="lvfacts num">usual ${fmtShort(st.avg)} · record ${fmtShort(st.max)} · ${st.sessions} sessions</p>` : ""}
+    </div>
+    ${cards.length ? `<div class="lvcards">${cards.join("")}</div>` : ""}${rank}`;
+}
+
+function renderLive() {
+  const m = liveModel(), f = state.focus, running = !!state.running;
+  const buttons = f
+    ? `<button class="lvbtn" id="lvskip">${icon("skip", 20)}${f.phase === "work" ? "Skip to break" : "Skip break"}</button>
+       <button class="lvbtn stop" id="lvstop">${icon("stop", 18)}${f.phase === "work" ? "Stop" : "End focus"}</button>`
+    : running
+      ? `<button class="lvbtn" id="lvpause">${icon("pause", 20)}Break</button>
+         ${m.limit ? "" : `<button class="lvbtn" id="lvfocus">${icon("target", 20)}Focus</button>`}
+         <button class="lvbtn stop" id="lvstop">${icon("stop", 18)}Stop</button>`
+      : `<button class="lvbtn" id="lvresume">${icon("play", 18)}Resume now</button>
+         <button class="lvbtn stop" id="lvend">End session</button>`;
+  liveDlg.style.setProperty("--c", m.a.color || "var(--accent)");
+  liveDlg.innerHTML = `<div class="lv">
+    <div class="lvtop">
+      <button class="icon-btn" id="lvclose" aria-label="Close live screen">${icon("x", 22)}</button>
+      <div class="lvname"><span class="pulse"></span>${esc(m.a.name)}${m.limit ? ` <span class="kindtag">Cut back</span>` : ""}</div>
+      ${canWake ? `<button class="icon-btn lvwake${keepOnPref() ? " on" : ""}" id="lvwake" aria-pressed="${keepOnPref()}" aria-label="Keep screen on">${icon("sun", 20)}</button>` : "<span></span>"}
+    </div>
+    <div id="lvbody">${liveBody()}</div>
+    <div class="lvactions">${buttons}</div>
+    <label class="lvauto"><input type="checkbox" id="lvauto" ${autoLivePref() ? "checked" : ""}> Open this screen whenever I start a timer</label>
+  </div>`;
+  $("#lvclose").onclick = closeLive;
+  $("#lvwake")?.addEventListener("click", () => {
+    const on = !keepOnPref();
+    setPref("liveKeepOn", on);
+    setWake(on);
+    toast(on ? "Screen stays on while this is open" : "Screen can turn off");
+    renderLive();
+  });
+  $("#lvauto").onchange = (e) => setPref("liveAuto", e.target.checked);
+  $("#lvstop")?.addEventListener("click", async () => {
+    if (state.focus) { try { await api("/focus/stop", { method: "POST" }); await load(); notify(); } catch (e) { toast(e.message); } }
+    else await stop();
+  });
+  $("#lvskip")?.addEventListener("click", async () => { try { await api("/focus/skip", { method: "POST" }); await load(); } catch (e) { toast(e.message); } });
+  $("#lvpause")?.addEventListener("click", openPause);
+  $("#lvfocus")?.addEventListener("click", () => openFocus());
+  $("#lvresume")?.addEventListener("click", resumeBreak);
+  $("#lvend")?.addEventListener("click", async () => { try { await api("/pause/cancel", { method: "POST" }); await load(); } catch (e) { toast(e.message); } });
+  bindLiveBody();
+}
+function bindLiveBody() {
+  $("#lvsetgoal")?.addEventListener("click", () => { const a = liveModel().a; openGoal(a, () => liveDlg.open && renderLive()); });
+}
+// every second: redraw only the numbers, not the buttons
+function tickLive() {
+  const b = $("#lvbody");
+  if (!b || !liveActive()) return;
+  b.innerHTML = liveBody();
+  bindLiveBody();
+}
+
 /* ---------- focus mode ---------- */
 const focusLeft = () => (state.focus ? (new Date(state.focus.ends) - now()) / 1000 : 0);
 function focusHero(f) {
@@ -806,6 +1057,7 @@ function focusHero(f) {
     return `<i class="${cls}"></i>`;
   }).join("");
   return `<section class="hero ${work ? "on" : "paused"} focus" style="--c:${f.color}">
+    <button class="lvopen" data-live aria-label="Open live screen">${icon("expand", 18)}</button>
     <div><div class="label"><span class="pulse"></span>${work ? `Focus · round ${f.round} of ${f.rounds}` : `Break · round ${f.round + 1} of ${f.rounds} next`}</div>
       <div class="name">${esc(f.name)}</div></div>
     <div class="row">
@@ -870,6 +1122,7 @@ function openFocus() {
       await load();
       notify();
       toast(out.message);
+      if (autoLivePref()) openLive();
     } catch (e) { toast(e.message); }
   };
   editSheet.showModal();
@@ -922,6 +1175,7 @@ function bindStarter() {
 const pauseLeft = () => (state.pause ? (new Date(state.pause.until) - now()) / 1000 : 0);
 function pausedHero(p) {
   return `<section class="hero paused" style="--c:${p.color}">
+    <button class="lvopen" data-live aria-label="Open live screen">${icon("expand", 18)}</button>
     <div><div class="label"><span class="pulse"></span>On a break</div><div class="name">${esc(p.name)}</div></div>
     <div class="row">
       <div><div class="clock num" id="pauseclock">${fmt(Math.max(0, pauseLeft()))}</div><div class="since">Continues at ${clock(p.until)}</div></div>
@@ -1023,6 +1277,7 @@ function renderTrack() {
 
   const hero = state.focus ? focusHero(state.focus) : r
     ? `<section class="hero on" style="--c:${runAct?.color || "var(--accent)"}">
+        <button class="lvopen" data-live aria-label="Open live screen">${icon("expand", 18)}</button>
         <div><div class="label"><span class="pulse"></span>Tracking now</div>
         <div class="name">${esc(r.name)}</div></div>
         <div class="row">
@@ -1057,6 +1312,9 @@ function renderTrack() {
   $("#startfocus")?.addEventListener("click", () => openFocus());
   bindFocusHero();
   bindStarter();
+  $$("[data-live]").forEach((b) => b.onclick = openLive);
+  $("#clock")?.addEventListener("click", openLive);
+  $("#focusclock")?.addEventListener("click", openLive);
   $("#resumenow")?.addEventListener("click", resumeBreak);
   $("#endbreak")?.addEventListener("click", async () => {
     try { await api("/pause/cancel", { method: "POST" }); await load(); toast("Session ended"); } catch (e) { toast(e.message); }
@@ -1069,7 +1327,7 @@ function renderTrack() {
 }
 
 async function start(id) {
-  try { await api("/start", { method: "POST", body: { activity_id: id } }); await load(); notify(); }
+  try { await api("/start", { method: "POST", body: { activity_id: id } }); await load(); notify(); if (autoLivePref()) openLive(); }
   catch (e) { toast(e.message); }
 }
 async function stop() {
@@ -1966,6 +2224,7 @@ $("#restorefile").onchange = async (ev) => {
 
 // live tick
 setInterval(() => {
+  if (signedIn && liveDlg.open) tickLive();
   if (signedIn && state.focus) {
     const left = focusLeft();
     const fc = $("#focusclock"); if (fc) fc.textContent = fmt(Math.max(0, left));

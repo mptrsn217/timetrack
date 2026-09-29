@@ -268,7 +268,20 @@ async function sessionStats(uid, activityId, runningId, tz) {
   const have = new Set(days.map((r) => r.d));
   let streak = 0;
   for (const d = new Date(today + "T00:00:00Z"); have.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++;
-  return { ...s, streak };
+  // for the live screen: a usual day (last 4 weeks, days it was done, not today) and last week up to this moment
+  const [extra] = await q(
+    `WITH days AS (
+       SELECT (started_at AT TIME ZONE $3)::date AS d, SUM(EXTRACT(EPOCH FROM stopped_at - started_at)) AS s
+       FROM entries WHERE user_id=$1 AND activity_id=$2 AND stopped_at IS NOT NULL
+         AND started_at > now() - interval '28 days' AND (started_at AT TIME ZONE $3)::date < (now() AT TIME ZONE $3)::date
+       GROUP BY 1),
+     wk AS (SELECT date_trunc('week', now() AT TIME ZONE $3) AT TIME ZONE $3 - interval '7 days' AS s, now() - interval '7 days' AS e)
+     SELECT (SELECT COALESCE(avg(s), 0)::int FROM days) AS day_avg,
+       (SELECT COALESCE(SUM(GREATEST(0, EXTRACT(EPOCH FROM LEAST(COALESCE(stopped_at, now()), wk.e) - GREATEST(started_at, wk.s)))), 0)::int
+        FROM entries, wk WHERE user_id=$1 AND activity_id=$2 AND started_at < wk.e AND COALESCE(stopped_at, now()) > wk.s) AS last_week_to_date`,
+    [uid, activityId, tz]
+  );
+  return { ...s, streak, dayAvg: extra.day_avg, lastWeekToDate: extra.last_week_to_date };
 }
 
 const pushLater = (uid) => notifyRunning(uid).catch((e) => console.warn("push failed:", e.message));
