@@ -105,6 +105,25 @@
   .editrow .name-col { display: grid; gap: 2px; min-width: 0; }
   .editrow .chip { margin: 0 0 4px 10px; justify-self: start; padding: 4px 10px; font-size: 12px; }
 
+  .hero.idle { min-height: 0; gap: 14px; justify-content: flex-start; }
+  .resume { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; border-radius: 16px;
+    background: color-mix(in srgb, var(--c) 12%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
+  .resume:active { transform: scale(.98); }
+  .resume .rplay { width: 40px; height: 40px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+  .resume b { display: block; font-size: 17px; overflow-wrap: anywhere; }
+  .resume small { color: var(--muted); font-size: 13px; }
+  .glist { display: grid; gap: 10px; }
+  .glist .label { margin-bottom: -2px; }
+  .grow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+  .grow .gname { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grow .gname i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+  .grow .gval { color: var(--muted); font-size: 13px; }
+  .grow .gval.done { color: var(--ink); }
+  .grow .gval.warn { color: var(--danger); font-weight: 600; }
+  .grow .gtrack { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .grow .gtrack span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
+  .grow .gtrack.over span { background: var(--danger); }
+  .setgoals { justify-self: start; }
   .daybar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin-top: 16px; gap: 2px; }
   .daybar span { background: var(--c); min-width: 3px; }
 
@@ -629,12 +648,48 @@ function tileBar(a) {
   return `<span class="tbar${g.over ? " over" : ""}${g.done ? " done" : ""}" aria-hidden="true"><i style="width:${g.pct * 100}%"></i></span>`;
 }
 
+// When nothing is running: a one-tap way back into the last activity, and where today's goals stand.
+function idleHero(acts) {
+  if (!acts.length) {
+    return `<section class="hero idle"><div class="label">Nothing running</div>
+      <div class="since">Add an activity to get started</div></section>`;
+  }
+  // last thing you did, skipping habits you're cutting back on
+  const last = acts.filter((a) => a.kind !== "limit" && a.last_at).sort((a, b) => new Date(b.last_at) - new Date(a.last_at))[0];
+  const ago = last ? fmtShort((now() - new Date(last.last_at)) / 1000) : "";
+  const resume = last
+    ? `<button class="resume" id="resume" data-id="${last.id}" style="--c:${last.color}">
+        <span class="rplay">${icon("play", 16)}</span>
+        <span><b>Continue ${esc(last.name)}</b><small>${ago === "0m" ? "stopped just now" : `stopped ${ago} ago`}</small></span></button>`
+    : `<div class="since">Tap an activity below to start the clock</div>`;
+
+  const withGoals = acts.filter((a) => a.goal_minutes).map((a) => ({ a, g: goalState(a) }));
+  // unfinished goals first, then limits (closest to the limit first), finished goals last
+  const rank = ({ a, g }) => (a.kind === "limit" ? (g.over ? 0 : 1) + (1 - g.pct) : g.done ? 3 : 0.5 - g.pct);
+  withGoals.sort((x, y) => rank(x) - rank(y));
+  const rows = withGoals.slice(0, 5).map(({ a, g }) => {
+    const when = periodWord(a.goal_period);
+    let text, cls = "";
+    if (a.kind === "limit") {
+      if (g.over) { text = `Over by ${fmtShort(g.v - g.g)}`; cls = "warn"; }
+      else text = `${fmtShort(g.g - g.v)} left of ${fmtShort(g.g)} ${when}`;
+    } else if (g.done) { text = `Done · ${fmtShort(g.v)} ${when}`; cls = "done"; }
+    else text = `${fmtShort(g.v)} of ${fmtShort(g.g)} ${when}`;
+    return `<div class="grow" style="--c:${a.color}">
+      <span class="gname"><i></i>${esc(a.name)}</span><span class="gval num ${cls}">${text}</span>
+      <span class="gtrack${g.over ? " over" : ""}"><span style="width:${g.pct * 100}%"></span></span></div>`;
+  }).join("");
+  const goals = withGoals.length
+    ? `<div class="glist"><div class="label">Goals</div>${rows}</div>`
+    : `<button class="linkbtn setgoals" id="setgoals">${icon("flag", 14)}Set daily or weekly goals</button>`;
+
+  return `<section class="hero idle"><div class="label">Nothing running</div>${resume}${goals}</section>`;
+}
+
 function renderTrack() {
   const r = state.running;
   const acts = state.activities;
   const runAct = r && acts.find((a) => a.id === r.activity_id);
-  const todayTotal = acts.reduce((s, a) => s + total(a.id, "today"), 0);
-  const segs = acts.map((a) => ({ c: a.color, v: total(a.id, "today") })).filter((x) => x.v > 30);
 
   const hero = r
     ? `<section class="hero on" style="--c:${runAct?.color || "var(--accent)"}">
@@ -646,15 +701,10 @@ function renderTrack() {
         </div>
         <div class="goal" id="goal">${goalHTML()}</div>
         <div class="goal live" id="livegoal">${liveGoalHTML(runAct)}</div></section>`
-    : `<section class="hero">
-        <div class="label">Today</div>
-        <div><div class="clock num" id="todaytotal">${fmtShort(todayTotal)}</div>
-        <div class="since">${acts.length ? "Tap an activity to start the clock" : "Add an activity to get started"}</div></div>
-        ${segs.length ? `<div class="daybar">${segs.map((s) => `<span style="--c:${s.c};flex:${s.v}"></span>`).join("")}</div>` : ""}
-      </section>`;
+    : idleHero(acts);
 
   const list = acts.length
-    ? `<h2 class="section"><span>Activities</span><span class="num">${fmtShort(todayTotal)} today</span></h2>
+    ? `<h2 class="section"><span>Activities</span><span></span></h2>
        <div class="grid">${acts.map((a) => {
          const on = r && r.activity_id === a.id;
          return `<button class="tile ${on ? "on" : ""}" data-id="${a.id}" style="--c:${a.color}" aria-pressed="${!!on}">
@@ -672,6 +722,8 @@ function renderTrack() {
   if (r) $("#stopbtn").onclick = stop;
   bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => go("manage", true));
+  $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id)));
+  $("#setgoals")?.addEventListener("click", () => go("manage"));
   $$(".tile").forEach((b) => b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id)));
 }
 
