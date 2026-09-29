@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { OAuth2Client } from "google-auth-library";
+import { initPush, vapidPublicKey, rememberOrigin, sendToUser, notifyRunning, startPushLoop, prefsOf } from "./push.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { Pool } = pg;
@@ -78,6 +79,7 @@ await pool.query(`
   CREATE INDEX IF NOT EXISTS activities_user_idx ON activities(user_id);
   CREATE INDEX IF NOT EXISTS entries_user_started_idx ON entries(user_id, started_at);
 `);
+await initPush((text, params) => pool.query(text, params).then((r) => r.rows));
 
 // --- sessions: signed cookie "uid.expiry.hmac" ---
 const sign = (v) => crypto.createHmac("sha256", SECRET).update(v).digest("base64url");
@@ -158,6 +160,8 @@ function validTz(tz) {
 
 app.get("/api/state", h(async (req, res) => {
   const tz = validTz(req.query.tz) ? req.query.tz : "UTC";
+  // remember the user's time zone so background reminders use their local day/week
+  if (validTz(req.query.tz)) await q("UPDATE users SET tz=$2 WHERE id=$1 AND tz IS DISTINCT FROM $2", [req.uid, tz]);
   const [user] = await q("SELECT email, name, picture FROM users WHERE id=$1", [req.uid]);
   if (!user) return res.status(401).json({ error: "Please sign in" });
   const activities = await q(
@@ -209,6 +213,53 @@ async function sessionStats(uid, activityId, runningId, tz) {
   for (const d = new Date(today + "T00:00:00Z"); have.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++;
   return { ...s, streak };
 }
+
+const pushLater = (uid) => notifyRunning(uid).catch((e) => console.warn("push failed:", e.message));
+
+// --- push notification settings for the signed-in user ---
+app.get("/api/push", h(async (req, res) => {
+  const [u] = await q("SELECT notify FROM users WHERE id=$1", [req.uid]);
+  const [{ n }] = await q("SELECT count(*)::int AS n FROM push_subscriptions WHERE user_id=$1", [req.uid]);
+  res.json({ publicKey: vapidPublicKey(), prefs: prefsOf(u?.notify), devices: n });
+}));
+
+app.post("/api/push/subscribe", h(async (req, res) => {
+  const sub = req.body.subscription || {};
+  const endpoint = typeof sub.endpoint === "string" ? sub.endpoint : "";
+  const { p256dh, auth } = sub.keys || {};
+  if (!/^https:\/\//.test(endpoint) || endpoint.length > 2000 || typeof p256dh !== "string" || typeof auth !== "string" || p256dh.length > 200 || auth.length > 100) {
+    return res.status(400).json({ error: "Bad subscription" });
+  }
+  const [{ n }] = await q("SELECT count(*)::int AS n FROM push_subscriptions WHERE user_id=$1 AND endpoint<>$2", [req.uid, endpoint]);
+  if (n >= 20) return res.status(400).json({ error: "Too many devices; turn notifications off on an old one" });
+  // the same browser can move between accounts: the endpoint belongs to whoever subscribed last
+  await q(
+    `INSERT INTO push_subscriptions(user_id, endpoint, p256dh, auth) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (endpoint) DO UPDATE SET user_id=$1, p256dh=$3, auth=$4`,
+    [req.uid, endpoint, p256dh, auth]
+  );
+  await rememberOrigin(req.get("origin"));
+  res.json({ ok: true });
+}));
+
+app.post("/api/push/unsubscribe", h(async (req, res) => {
+  await q("DELETE FROM push_subscriptions WHERE user_id=$1 AND endpoint=$2", [req.uid, String(req.body.endpoint || "")]);
+  res.json({ ok: true });
+}));
+
+app.put("/api/push/prefs", h(async (req, res) => {
+  const prefs = {};
+  for (const k of ["running", "forgot", "goals"]) if (typeof req.body[k] === "boolean") prefs[k] = req.body[k];
+  const [u] = await q("SELECT notify FROM users WHERE id=$1", [req.uid]);
+  const next = { ...prefsOf(u?.notify), ...prefs };
+  await q("UPDATE users SET notify=$2 WHERE id=$1", [req.uid, JSON.stringify(next)]);
+  res.json({ prefs: next });
+}));
+
+app.post("/api/push/test", h(async (req, res) => {
+  const sent = await sendToUser(req.uid, { title: "Timetrack", body: "Notifications are working 👍", tag: "test", ttl: 300 });
+  res.json({ sent });
+}));
 
 function cleanName(name) {
   return typeof name === "string" && name.trim() ? name.trim().slice(0, 60) : null;
@@ -264,6 +315,7 @@ app.delete("/api/activities/:id", h(async (req, res) => {
   await q("UPDATE entries SET stopped_at=now() WHERE activity_id=$1 AND user_id=$2 AND stopped_at IS NULL", [req.params.id, req.uid]);
   await q("UPDATE activities SET archived=TRUE WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
   res.json({ ok: true });
+  pushLater(req.uid);
 }));
 
 app.post("/api/start", h(async (req, res) => {
@@ -272,11 +324,13 @@ app.post("/api/start", h(async (req, res) => {
   await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL", [req.uid]);
   const [row] = await q("INSERT INTO entries(user_id,activity_id) VALUES($1,$2) RETURNING *", [req.uid, act.id]);
   res.json(row);
+  pushLater(req.uid);
 }));
 
 app.post("/api/stop", h(async (req, res) => {
-  await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL", [req.uid]);
+  const stopped = await q("UPDATE entries SET stopped_at=now() WHERE user_id=$1 AND stopped_at IS NULL RETURNING id", [req.uid]);
   res.json({ ok: true });
+  if (stopped.length) pushLater(req.uid);
 }));
 
 app.get("/api/entries", h(async (req, res) => {
@@ -352,6 +406,7 @@ app.put("/api/entries/:id", h(async (req, res) => {
     [entry.id, req.uid, start, stop, activityId, note]
   );
   res.json(row);
+  if (entry.stopped_at === null && stop) pushLater(req.uid); // a running timer was stopped by editing it
 }));
 
 // Time per activity per day/week/month (user's local calendar), splitting entries across bucket edges
@@ -508,4 +563,5 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.status && err.status < 500 ? err.message : "Server error" });
 });
 
+startPushLoop(sessionStats);
 app.listen(process.env.PORT || 3000, () => console.log("timetrack up"));

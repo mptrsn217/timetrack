@@ -31,6 +31,15 @@ Tables are created/migrated automatically on start. If the database refuses SSL,
 - Android: tap "Enable lock-screen timer" → the running activity stays as a notification with a Stop button.
 - iOS: no persistent notification for web apps; use the home-screen app.
 
+## Notifications (Web Push)
+- Profile picture → *Notifications* → *Turn on*. Works in Chrome/Edge/Firefox on Android and desktop, and on
+  iPhone/iPad only in the Home Screen app (iOS 16.4+).
+- Sends: timer started/stopped, a reminder for timers left running (4h+ or 3× the usual length), and goal reached /
+  5 minutes left / over limit. Each can be switched off.
+- No setup needed: the server generates its VAPID keys on first start and stores them in the database
+  (table `app_settings`). To manage them yourself set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`
+  (`mailto:you@example.com`). Changing the keys disconnects every device until it turns notifications on again.
+
 ## Local
 ```
 DATABASE_URL=postgres://... GOOGLE_CLIENT_ID=... npm start
