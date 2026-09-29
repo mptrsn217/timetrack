@@ -39,7 +39,8 @@
       --shadow: none;
       color-scheme: dark;
   }
-  * { box-sizing: border-box; }
+  /* no double-tap zoom on iPhone (quick taps on buttons were zooming the app); pinch-to-zoom still works */
+  * { box-sizing: border-box; touch-action: manipulation; }
   html, body { margin: 0; background: var(--bg); color: var(--ink);
     font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
