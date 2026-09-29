@@ -34,19 +34,20 @@ Tables are created/migrated automatically on start. If the database refuses SSL,
 ## Notifications (Web Push)
 - Profile picture → *Notifications* → *Turn on*. Works in Chrome/Edge/Firefox on Android and desktop, and on
   iPhone/iPad only in the Home Screen app (iOS 16.4+).
-- Sends: timer started/stopped, a reminder for timers left running (4h+ or 3× the usual length), and goal reached /
-  5 minutes left / over limit. Each can be switched off.
+- Sends: timer started/stopped, a reminder for timers left running (4h+ or 3× the usual length), goal reached /
+  5 minutes left / over limit, the Sunday weekly review and the evening habit check-in. Each can be switched off.
 - No setup needed: the server generates its VAPID keys on first start and stores them in the database
   (table `app_settings`). To manage them yourself set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`
   (`mailto:you@example.com`). Changing the keys disconnects every device until it turns notifications on again.
 
-## iPhone Lock Screen buttons (Shortcuts)
-Profile → *iPhone lock screen buttons* creates a personal key (stored hashed; it can only start, stop, pause and read
-status) and shows a step-by-step guide. Endpoints for Shortcuts, all with header `Authorization: Bearer <key>`:
-- `POST /api/toggle` with JSON `{"activity": "Deep work"}`: start it, or stop it if it's running (no body: stop whatever
-  runs, or restart the last activity)
-- `POST /api/start` / `POST /api/stop`, `POST /api/pause` with `{"minutes": 15}`, `GET /api/status`
-Every response has a `message` field to show in a notification.
+## Offline
+The app's files are cached by the service worker, and the last data you saw is kept on the phone, so it opens without
+a connection. Starting/stopping timers and logging habits or counters offline is queued on the phone and sent when
+you're back online, with the times they really happened (the server accepts those for up to 2 days back).
+
+## Habit reminder
+Profile → Notifications → "Habit check-in reminder" sends one notification in the evening (default 21:00, adjustable)
+if some habits aren't logged yet that day.
 
 ## Local
 ```

@@ -2,7 +2,7 @@
 // Works on Android/desktop browsers and on iPhone for the Home Screen app (iOS 16.4+).
 import webpush from "web-push";
 
-export const DEFAULT_PREFS = { running: true, forgot: true, goals: true, review: true };
+export const DEFAULT_PREFS = { running: true, forgot: true, goals: true, review: true, habits: true, habitsAt: "21:00" };
 const LIMIT_WARN_SECONDS = 5 * 60;
 let keys = null;
 let q = null;
