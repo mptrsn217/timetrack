@@ -35,3 +35,10 @@ Tables are created/migrated automatically on start. If the database refuses SSL,
 ```
 DATABASE_URL=postgres://... GOOGLE_CLIENT_ID=... npm start
 ```
+
+## Backups
+- **In the app** (profile picture → *Download backup*): a JSON file with all your activities, goals, entries and notes.
+  *Restore from backup* merges a file back in: activities are matched by name and entries you already have are skipped, so restoring twice is safe.
+  It also works for moving data between Google accounts.
+- **Whole database (Railway)**: open the Postgres service → *Backups* tab → turn on scheduled backups (daily is a good default).
+  Railway keeps them on the volume and can restore the database to any of them.

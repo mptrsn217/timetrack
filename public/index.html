@@ -92,7 +92,12 @@
   .tile .top-l { display: flex; align-items: center; }
   .chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 7px 12px; border-radius: 99px;
     font-size: 13px; font-weight: 600; color: var(--muted); background: var(--surface-2); }
-  .chip[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+  .chip[aria-pressed="true"] { color: var(--ink); }
+  /* checkbox look: empty square when off, filled with a tick when on */
+  .chip .box { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--faint); flex-shrink: 0; position: relative; }
+  .chip[aria-pressed="true"] .box { background: var(--ink); border-color: var(--ink); }
+  .chip[aria-pressed="true"] .box::after { content: ""; position: absolute; left: 3px; top: 0; width: 4px; height: 7px;
+    border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
   .editrow .name-col { display: grid; gap: 2px; min-width: 0; }
   .editrow .chip { margin: 0 0 4px 10px; justify-self: start; padding: 4px 10px; font-size: 12px; }
 
@@ -251,6 +256,37 @@
   .btn.ghost { background: var(--surface-2); color: var(--ink); }
   .btn.ghost.danger { color: var(--danger); }
 
+  /* goals */
+  .tile { overflow: hidden; }
+  .tbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: color-mix(in srgb, var(--c) 18%, transparent); }
+  .tbar i { display: block; height: 100%; background: var(--c); }
+  .tbar.over i { background: var(--danger); }
+  .tile .sub.warn { color: var(--danger); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px 10px; }
+  .editrow .chips .chip { margin: 0; }
+  .goalchip svg { color: var(--faint); }
+  .goalchip.set { color: var(--ink); }
+  .goalchip.set svg { color: var(--c); }
+  .goalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .goalrow[hidden] { display: none; }
+  .eform .seg { justify-self: start; margin: 0; }
+
+  /* history extras */
+  .wk .track { position: relative; overflow: visible; }
+  .wk .prev { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--ink); opacity: .45; }
+  .wk .delta { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .wk .delta.better { color: #1f9d55; }
+  .wk .delta.worse { color: var(--danger); }
+  @media (prefers-color-scheme: dark) { .wk .delta.better { color: #4cc38a; } }
+  .linkbtn { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; font-size: 13px;
+    text-transform: none; letter-spacing: 0; }
+  .search { position: relative; margin-bottom: 4px; }
+  .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
+  .search .field { padding-left: 40px; background: var(--surface); box-shadow: var(--shadow); }
+  .rowi .note { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  textarea.field { resize: vertical; min-height: 64px; font: inherit; line-height: 1.4; }
+
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
     font-weight: 550; text-align: center; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
@@ -279,6 +315,9 @@
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v4M12 17.5h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -303,7 +342,10 @@
     <div class="who"><span class="avatar" id="sheet-av"></span><div><div id="sheet-name"></div><div id="sheet-email"></div></div></div>
     <div class="menu">
       <button id="notif"><svg width="22" height="22"><use href="#i-bell"/></svg>Lock-screen timer (Android)</button>
-      <button id="csv"><svg width="22" height="22"><use href="#i-dl"/></svg>Export CSV</button>
+      <button id="csv"><svg width="22" height="22"><use href="#i-dl"/></svg>Export CSV (spreadsheet)</button>
+      <button id="backup"><svg width="22" height="22"><use href="#i-dl"/></svg>Download backup</button>
+      <button id="restore"><svg width="22" height="22"><use href="#i-upload"/></svg>Restore from backup</button>
+      <input type="file" id="restorefile" accept="application/json,.json" hidden>
       <a href="/privacy.html"><svg width="22" height="22"><use href="#i-shield"/></svg>Privacy</a>
       <hr>
       <button id="logout"><svg width="22" height="22"><use href="#i-out"/></svg>Sign out</button>
@@ -342,7 +384,11 @@ async function api(path, opts = {}) {
 }
 let toastTimer;
 function toast(msg) {
-  const e = $("#toast"); e.textContent = msg; e.classList.add("show");
+  const e = $("#toast");
+  // an open modal sheet sits in the top layer above the page; move the toast into it so it stays visible
+  const host = $("dialog[open]") || document.body;
+  if (e.parentElement !== host) host.appendChild(e);
+  e.textContent = msg; e.classList.add("show");
   clearTimeout(toastTimer); toastTimer = setTimeout(() => e.classList.remove("show"), 2800);
 }
 function now() { return Date.now() + offset; }
@@ -368,7 +414,7 @@ function total(id, key) {
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const icon = (id, size = 20) => `<svg width="${size}" height="${size}"><use href="#i-${id}"/></svg>`;
-const editing = () => app.contains(document.activeElement) && document.activeElement.matches("input");
+const editing = () => app.contains(document.activeElement) && document.activeElement.matches("input, textarea, select");
 
 async function load({ background = false } = {}) {
   try {
@@ -377,10 +423,11 @@ async function load({ background = false } = {}) {
     loadedAt = Date.now();
     state = s;
     signedIn = true;
-    if (view === "history") entries = await api("/entries?days=14");
+    if (view === "history") await loadHistoryData();
     // never redraw under someone's fingers: a background refresh would wipe what they are typing
     if (background && editing()) return;
     render();
+    maybeForgotten();
   } catch (e) { if (signedIn && !background) toast(e.message); if (!signedIn) render(); }
 }
 
@@ -502,12 +549,23 @@ function limitGoalHTML(st, r) {
 
 function tileSub(a) {
   const today = total(a.id, "today");
-  if (a.kind === "limit" && !today) {
+  const g = goalState(a);
+  if (a.kind === "limit" && !today && (!g || a.goal_period === "day")) {
     if (!a.last_at) return "Not tracked yet";
     const n = daysSince(a.last_at);
     if (n >= 1) return `${plural(n, "day")} free`;
   }
+  if (g) {
+    if (g.over) return `Over limit by ${fmtShort(g.v - g.g)}`;
+    if (g.done) return `Goal reached · ${fmtShort(g.v)}`;
+    return `${fmtShort(g.v)} of ${fmtShort(g.g)} ${periodWord(a.goal_period)}`;
+  }
   return `${fmtShort(today)} today`;
+}
+function tileBar(a) {
+  const g = goalState(a);
+  if (!g) return "";
+  return `<span class="tbar${g.over ? " over" : ""}${g.done ? " done" : ""}" aria-hidden="true"><i style="width:${g.pct * 100}%"></i></span>`;
 }
 
 function renderTrack() {
@@ -541,7 +599,8 @@ function renderTrack() {
            <span class="play">${icon(on ? "stop" : "play", 14)}</span>
            <span class="top-l"><span class="dot"></span>${a.kind === "limit" ? `<span class="kindtag">Cut back</span>` : ""}</span>
            <span><div class="nm">${esc(a.name)}</div>
-           <div class="sub num" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div></span>
+           <div class="sub num${goalState(a)?.over ? " warn" : ""}" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div></span>
+           ${tileBar(a)}
          </button>`;
        }).join("")}</div>`
     : `<div class="empty" style="margin-top:16px"><b>No activities yet</b>Create things you want to track, like Work, Gym or Reading.
@@ -568,6 +627,23 @@ const dayStart = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return 
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const entryEnd = (e) => (e.stopped_at ? new Date(e.stopped_at).getTime() : now());
 const dur = (e) => (entryEnd(e) - new Date(e.started_at)) / 1000;
+const parseDay = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+
+let summary = { week: null, month: null };
+let searchQ = "", searchResults = null;
+const CHART_MODES = [["days", "Days"], ["weeks", "Weeks"], ["months", "Months"], ["timeline", "Timeline"]];
+let chartMode = "days";
+try {
+  const saved = localStorage.getItem("chartMode") || (localStorage.getItem("dailyMode") === "timeline" ? "timeline" : "");
+  if (CHART_MODES.some(([m]) => m === saved)) chartMode = saved;
+} catch {}
+
+async function loadHistoryData() {
+  const jobs = [api("/entries?days=14"), api(`/summary?bucket=week&count=12&tz=${encodeURIComponent(tz)}`)];
+  if (chartMode === "months") jobs.push(api(`/summary?bucket=month&count=12&tz=${encodeURIComponent(tz)}`));
+  const [e, w, m] = await Promise.all(jobs);
+  entries = e; summary.week = w; if (m) summary.month = m;
+}
 
 // seconds per activity per calendar day, splitting entries that cross midnight
 function dailyTotals() {
@@ -584,62 +660,100 @@ function dailyTotals() {
   return days;
 }
 
-// activities that appear in the data, in the user's own order (archived ones last)
+// activities in the user's own order (archived ones last), limited to those with data
+function orderSeries(list) {
+  const order = state.activities.map((a) => a.id);
+  const rank = (id) => (order.includes(id) ? order.indexOf(id) : 1e6 + id);
+  return list.map((s) => ({ ...s, ...(state.activities.find((a) => a.id === s.id) || {}) })).sort((a, b) => rank(a.id) - rank(b.id));
+}
 function chartSeries() {
   const seen = new Map();
   for (const e of entries) if (!seen.has(e.activity_id)) seen.set(e.activity_id, { id: e.activity_id, name: e.name, color: e.color });
-  const order = state.activities.map((a) => a.id);
-  const rank = (id) => (order.includes(id) ? order.indexOf(id) : 1e6 + id);
-  return [...seen.values()].map((s) => ({ ...s, ...(state.activities.find((a) => a.id === s.id) || {}) }))
-    .sort((a, b) => rank(a.id) - rank(b.id));
+  return orderSeries([...seen.values()]);
+}
+
+// columns for the bar chart: { by, total, current, top, bottom, title }
+function chartData(mode) {
+  if (mode === "days") {
+    const todayKey = dayStart(new Date()).getTime();
+    return {
+      unit: "day", series: chartSeries(),
+      cols: dailyTotals().map((d) => ({
+        ...d, current: d.date.getTime() === todayKey,
+        top: d.date.toLocaleDateString(undefined, { weekday: "narrow" }), bottom: d.date.getDate(),
+        title: d.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
+      })),
+    };
+  }
+  const sm = summary[mode === "weeks" ? "week" : "month"];
+  if (!sm) return null;
+  const cols = sm.buckets.map((b, i) => {
+    const date = parseDay(b), prev = i ? parseDay(sm.buckets[i - 1]) : null;
+    const newMonth = !prev || prev.getMonth() !== date.getMonth();
+    return mode === "weeks"
+      ? { key: b, by: new Map(), total: 0, current: i === sm.buckets.length - 1,
+          top: newMonth ? date.toLocaleDateString(undefined, { month: "short" }) : "", bottom: date.getDate(),
+          title: `Week of ${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })}` }
+      : { key: b, by: new Map(), total: 0, current: i === sm.buckets.length - 1,
+          top: date.toLocaleDateString(undefined, { month: "narrow" }),
+          bottom: !prev || date.getMonth() === 0 ? String(date.getFullYear()).slice(2) : "",
+          title: date.toLocaleDateString(undefined, { month: "long", year: "numeric" }) };
+  });
+  const idx = new Map(sm.buckets.map((b, i) => [b, i]));
+  const seen = new Set();
+  for (const r of sm.rows) {
+    const c = cols[idx.get(r.bucket)];
+    if (!c) continue;
+    c.by.set(r.activity_id, (c.by.get(r.activity_id) || 0) + r.seconds);
+    c.total += r.seconds;
+    seen.add(r.activity_id);
+  }
+  const series = orderSeries(sm.activities.filter((a) => seen.has(a.id)).map((a) => ({ id: a.id, name: a.name, color: a.color })));
+  return { unit: mode === "weeks" ? "week" : "month", series, cols };
 }
 
 function niceStepHours(maxH) {
-  for (const s of [0.5, 1, 2, 3, 4, 6, 8, 12]) if (maxH / s <= 4) return s;
-  return 24;
+  for (const s of [0.5, 1, 2, 3, 4, 6, 8, 12, 24, 48, 96, 168, 336]) if (maxH / s <= 4) return s;
+  return 720;
 }
 
-function renderDaily() {
-  const days = dailyTotals();
-  const series = chartSeries();
-  const maxH = Math.max(1, ...days.map((d) => d.total / 3600));
+let chartCols = [], chartSeriesList = [];
+function renderBars({ cols, series }) {
+  const maxH = Math.max(1, ...cols.map((d) => d.total / 3600));
   const step = niceStepHours(maxH);
   const top = Math.ceil(maxH / step) * step;
   const H = 150;
   const ticks = [];
   for (let t = 0; t <= top + 1e-9; t += step) ticks.push(t);
-  const todayKey = dayStart(new Date()).getTime();
-  const active = days.filter((d) => d.total > 0);
-  const avg = active.length ? active.reduce((s, d) => s + d.total, 0) / active.length : 0;
-
-  const bars = days.map((d, i) => {
+  chartCols = cols; chartSeriesList = series;
+  const bars = cols.map((d, i) => {
     const segs = series.filter((s) => d.by.get(s.id) > 0)
       .map((s) => `<span style="--c:${s.color};height:${(d.by.get(s.id) / 3600 / top) * H}px"></span>`).join("");
-    const isToday = d.date.getTime() === todayKey;
-    const wd = d.date.toLocaleDateString(undefined, { weekday: "narrow" });
-    const label = d.date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-    return `<button class="col${isToday ? " today" : ""}" data-day="${i}" aria-label="${esc(label)}: ${fmtShort(d.total)}">
+    return `<button class="col${d.current ? " today" : ""}" data-col="${i}" aria-label="${esc(d.title)}: ${fmtShort(d.total)}">
       <span class="stack" style="height:${H}px">${segs ? `<span class="segs">${segs}</span>` : ""}</span>
-      <span class="xl"><b>${wd}</b>${d.date.getDate()}</span></button>`;
+      <span class="xl"><b>${d.top || "&nbsp;"}</b>${d.bottom || "&nbsp;"}</span></button>`;
   }).join("");
-
   const grid = ticks.map((t) => `<div class="gl" style="bottom:${(t / top) * H}px"><span>${t ? (t % 1 ? `${t * 60}m` : `${t}h`) : ""}</span></div>`).join("");
-  const legend = series.map((s) => `<span class="lg" style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join("");
-
-  const toggle = `<div class="seg" role="tablist" aria-label="Chart view">
-      <button role="tab" data-mode="totals" aria-selected="${dailyMode === "totals"}">Totals</button>
-      <button role="tab" data-mode="timeline" aria-selected="${dailyMode === "timeline"}">Timeline</button></div>`;
-  return `<h2 class="section"><span>Daily</span><span class="num">${avg ? `avg ${fmtShort(avg)} / day` : ""}</span></h2>
-    <div class="card chart">
-      ${toggle}
-      ${dailyMode === "timeline" ? renderTimeline(days) : `<div class="plot" style="height:${H}px">${grid}<div class="cols">${bars}</div></div>`}
-      ${series.length ? `<div class="legend">${legend}</div>` : ""}
-      <div class="tip" id="tip" hidden></div>
-    </div>`;
+  return `<div class="plot" style="height:${H}px">${grid}<div class="cols" style="grid-template-columns:repeat(${cols.length},1fr)">${bars}</div></div>`;
 }
 
-let dailyMode = "totals";
-try { dailyMode = localStorage.getItem("dailyMode") === "timeline" ? "timeline" : "totals"; } catch {}
+function renderChartCard() {
+  const toggle = `<div class="seg" role="tablist" aria-label="Chart view">${CHART_MODES.map(([m, label]) =>
+    `<button role="tab" data-mode="${m}" aria-selected="${chartMode === m}">${label}</button>`).join("")}</div>`;
+  const data = chartData(chartMode === "timeline" ? "days" : chartMode);
+  let body, avgText = "";
+  if (!data) {
+    body = `<div class="empty" style="box-shadow:none">Loading…</div>`;
+  } else {
+    const active = data.cols.filter((c) => c.total > 0);
+    const avg = active.length ? active.reduce((s, c) => s + c.total, 0) / active.length : 0;
+    if (avg) avgText = `avg ${fmtShort(avg)} / ${data.unit}`;
+    body = chartMode === "timeline" ? renderTimeline(data.cols) : renderBars(data);
+  }
+  const legend = (data?.series || []).map((s) => `<span class="lg" style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join("");
+  return `<h2 class="section"><span>Overview</span><span class="num">${avgText}</span></h2>
+    <div class="card chart">${toggle}${body}${legend ? `<div class="legend">${legend}</div>` : ""}<div class="tip" id="tip" hidden></div></div>`;
+}
 
 // one row per day, 00:00 on the left to 24:00 on the right, so the same clock time lines up across days
 function renderTimeline(days) {
@@ -649,7 +763,7 @@ function renderTimeline(days) {
     const blocks = entries.map((e) => {
       const s = Math.max(new Date(e.started_at).getTime(), a), t = Math.min(entryEnd(e), b);
       if (t <= s) return "";
-      const title = `${e.name} ${clock(e.started_at)}–${e.stopped_at ? clock(e.stopped_at) : "now"} (${fmtShort(dur(e))})`;
+      const title = `${e.name} ${clock(e.started_at)}–${e.stopped_at ? clock(e.stopped_at) : "now"} (${fmtShort(dur(e))})${e.note ? " · " + e.note : ""}`;
       return `<button class="blk" data-entry="${e.id}" style="--c:${e.color};left:${((s - a) / span) * 100}%;width:${((t - s) / span) * 100}%" title="${esc(title)}" aria-label="${esc(title)}"></button>`;
     }).join("");
     const isToday = a === todayKey;
@@ -662,21 +776,24 @@ function renderTimeline(days) {
   return `<div class="tl">${rows}<div class="tl-row axis"><span class="tl-d"></span><div class="tl-axis num">${axis}</div></div></div>`;
 }
 
-function bindDaily() {
-  $$(".seg button").forEach((b) => b.onclick = () => {
-    dailyMode = b.dataset.mode;
-    try { localStorage.setItem("dailyMode", dailyMode); } catch {}
+function bindChart() {
+  $$(".seg button").forEach((b) => b.onclick = async () => {
+    chartMode = b.dataset.mode;
+    try { localStorage.setItem("chartMode", chartMode); } catch {}
     renderHistory();
+    if (chartMode === "months" && !summary.month) {
+      try { summary.month = await api(`/summary?bucket=month&count=12&tz=${encodeURIComponent(tz)}`); renderHistory(); }
+      catch (e) { toast(e.message); }
+    }
   });
-  const days = dailyTotals(), series = chartSeries();
   const tip = $("#tip"), chart = $(".chart");
-  if (!tip || dailyMode !== "totals") return;
+  if (!tip || chartMode === "timeline") return;
   let pinned = null;
   const show = (btn) => {
-    const d = days[btn.dataset.day];
-    const rows = series.filter((s) => d.by.get(s.id) > 0).reverse()
+    const d = chartCols[btn.dataset.col];
+    const rows = chartSeriesList.filter((s) => d.by.get(s.id) > 0).reverse()
       .map((s) => `<div class="tr" style="--c:${s.color}"><i></i><span>${esc(s.name)}</span><b class="num">${fmtShort(d.by.get(s.id))}</b></div>`).join("");
-    tip.innerHTML = `<div class="th"><span>${d.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</span><b class="num">${fmtShort(d.total)}</b></div>${rows || `<div class="tr muted">Nothing tracked</div>`}`;
+    tip.innerHTML = `<div class="th"><span>${esc(d.title)}</span><b class="num">${fmtShort(d.total)}</b></div>${rows || `<div class="tr muted">Nothing tracked</div>`}`;
     tip.hidden = false;
     $$(".col", chart).forEach((c) => c.classList.toggle("sel", c === btn));
     const cr = chart.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -691,56 +808,115 @@ function bindDaily() {
   });
 }
 
-function renderHistory() {
-  const acts = state.activities;
-  const week = acts.map((a) => ({ ...a, v: total(a.id, "week") })).filter((a) => a.v > 0).sort((a, b) => b.v - a.v);
-  const max = Math.max(1, ...week.map((a) => a.v));
-  let html = renderDaily();
-  html += `<h2 class="section"><span>This week</span><span class="num">${fmtShort(week.reduce((s, a) => s + a.v, 0))}</span></h2>`;
-  html += week.length
-    ? `<div class="card wk">${week.map((a) => `<div style="--c:${a.color}">
-        <div class="l"><span>${esc(a.name)}</span><span class="num">${fmtShort(a.v)}</span></div>
-        <div class="track"><div class="fill" style="width:${(a.v / max) * 100}%"></div></div></div>`).join("")}</div>`
-    : `<div class="empty">Nothing tracked this week yet.</div>`;
-
-  if (entries.length) {
-    const days = new Map();
-    for (const e of entries) {
-      const key = new Date(e.started_at).toDateString();
-      if (!days.has(key)) days.set(key, []);
-      days.get(key).push(e);
-    }
-    const todayKey = new Date().toDateString(), yKey = addDays(new Date(), -1).toDateString();
-    for (const [key, list] of days) {
-      const d = new Date(key);
-      const label = key === todayKey ? "Today" : key === yKey ? "Yesterday" : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-      html += `<div class="day"><b>${label}</b><span class="num">${fmtShort(list.reduce((s, e) => s + dur(e), 0))}</span></div><div class="card">`;
-      html += list.map((e) => `<button class="rowi entry" data-entry="${e.id}" style="--c:${e.color}" aria-label="Edit ${esc(e.name)} entry">
-          <span class="bar"></span>
-          <span><div>${esc(e.name)}</div><div class="t num">${clock(e.started_at)} – ${e.stopped_at ? clock(e.stopped_at) : "now"}</div></span>
-          <span class="right"><span class="d num">${fmtShort(dur(e))}</span><span class="chev">${icon("edit", 16)}</span></span></button>`).join("");
-      html += `</div>`;
-    }
-    html += `<p class="hint">Tap an entry to change its times or activity.</p>`;
-  } else {
-    html += `<h2 class="section"><span>Last ${DAYS} days</span></h2><div class="empty">No entries yet.</div>`;
+// this week per activity, with the change from last week; "better" depends on whether it's a habit to cut back
+function renderCompare() {
+  const sm = summary.week;
+  if (!sm || sm.buckets.length < 2) return "";
+  const [prevKey, curKey] = sm.buckets.slice(-2);
+  const cur = new Map(), prev = new Map();
+  for (const r of sm.rows) {
+    if (r.bucket === curKey) cur.set(r.activity_id, (cur.get(r.activity_id) || 0) + r.seconds);
+    if (r.bucket === prevKey) prev.set(r.activity_id, (prev.get(r.activity_id) || 0) + r.seconds);
   }
-  app.innerHTML = html;
-  bindDaily();
-  $$("[data-entry]").forEach((b) => b.onclick = () => openEntry(entries.find((e) => e.id == b.dataset.entry)));
+  const acts = sm.activities.filter((a) => (cur.get(a.id) || 0) > 0 || (!a.archived && (prev.get(a.id) || 0) > 0))
+    .map((a) => ({ ...a, v: cur.get(a.id) || 0, p: prev.get(a.id) || 0 })).sort((a, b) => b.v - a.v || b.p - a.p);
+  const totalCur = [...cur.values()].reduce((s, v) => s + v, 0);
+  const max = Math.max(1, ...acts.map((a) => Math.max(a.v, a.p)));
+  const rows = acts.map((a) => {
+    const diff = a.v - a.p;
+    let delta, cls = "";
+    if (Math.abs(diff) < 60) delta = "same as last week";
+    else if (!a.p) delta = "new this week";
+    else {
+      const up = diff > 0;
+      cls = (up === (a.kind !== "limit")) ? "better" : "worse";
+      delta = `${up ? "▲" : "▼"} ${fmtShort(Math.abs(diff))} vs last week`;
+    }
+    return `<div style="--c:${a.color}">
+      <div class="l"><span>${esc(a.name)}${a.kind === "limit" ? ` <span class="kindtag">Cut back</span>` : ""}</span><span class="num">${fmtShort(a.v)}</span></div>
+      <div class="track"><div class="fill" style="width:${(a.v / max) * 100}%"></div><div class="prev" style="left:${(a.p / max) * 100}%" title="Last week"></div></div>
+      <div class="delta num ${cls}">${delta}</div></div>`;
+  }).join("");
+  return `<h2 class="section"><span>This week vs last</span><span class="num">${fmtShort(totalCur)}</span></h2>
+    ${acts.length ? `<div class="card wk">${rows}</div><p class="hint">The thin mark on each bar is last week's total.</p>` : `<div class="empty">Nothing tracked this week or last.</div>`}`;
 }
 
-/* ---------- edit entry ---------- */
+function renderHistory() {
+  const html = renderChartCard() + renderCompare() + `
+    <h2 class="section"><span>Entries</span><button class="linkbtn" id="addentry">${icon("plus", 16)}Add entry</button></h2>
+    <div class="search">${icon("search", 18)}<input class="field" id="search" type="search" placeholder="Search notes and activities" value="${esc(searchQ)}" enterkeyhint="search"></div>
+    <div id="entrylist"></div>`;
+  app.innerHTML = html;
+  bindChart();
+  renderEntryList();
+  $$(".blk").forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
+  $("#addentry").onclick = () => openEntry(null);
+  let t;
+  $("#search").oninput = (ev) => {
+    clearTimeout(t);
+    const v = ev.target.value.trim();
+    t = setTimeout(async () => {
+      searchQ = v;
+      if (v.length < 2) { searchResults = null; return renderEntryList(); }
+      try { searchResults = await api(`/entries?q=${encodeURIComponent(v)}`); } catch (e) { return toast(e.message); }
+      if (searchQ === v) renderEntryList();
+    }, 250);
+  };
+}
+
+const findEntry = (id) => (searchResults || []).concat(entries).find((e) => e.id == id);
+
+function renderEntryList() {
+  const list = searchResults ?? entries;
+  const box = $("#entrylist");
+  if (!box) return;
+  if (!list.length) {
+    box.innerHTML = `<div class="empty">${searchResults ? "No entries match." : "No entries in the last 14 days."}</div>`;
+    return;
+  }
+  const days = new Map();
+  for (const e of list) {
+    const key = new Date(e.started_at).toDateString();
+    if (!days.has(key)) days.set(key, []);
+    days.get(key).push(e);
+  }
+  const todayKey = new Date().toDateString(), yKey = addDays(new Date(), -1).toDateString();
+  let html = searchResults ? `<p class="hint" style="margin-top:0">${plural(list.length, "match")}${list.length === 200 ? " (showing the latest 200)" : ""}</p>` : "";
+  for (const [key, items] of days) {
+    const d = new Date(key);
+    const label = key === todayKey ? "Today" : key === yKey ? "Yesterday"
+      : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+    html += `<div class="day"><b>${label}</b><span class="num">${fmtShort(items.reduce((s, e) => s + dur(e), 0))}</span></div><div class="card">`;
+    html += items.map((e) => `<button class="rowi entry" data-entry="${e.id}" style="--c:${e.color}" aria-label="Edit ${esc(e.name)} entry">
+        <span class="bar"></span>
+        <span><div>${esc(e.name)}</div><div class="t num">${clock(e.started_at)} – ${e.stopped_at ? clock(e.stopped_at) : "now"}</div>
+        ${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}</span>
+        <span class="right"><span class="d num">${fmtShort(dur(e))}</span><span class="chev">${icon("edit", 16)}</span></span></button>`).join("");
+    html += `</div>`;
+  }
+  if (!searchResults) html += `<p class="hint">Tap an entry to change its times, activity or note.</p>`;
+  box.innerHTML = html;
+  $$("[data-entry]", box).forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
+}
+
+/* ---------- add / edit entry ---------- */
 const toLocalInput = (d) => { const x = new Date(d); return new Date(x - x.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
 const editSheet = $("#editsheet");
+const roundTo5 = (ms) => Math.floor(ms / 3e5) * 3e5;
 function openEntry(e) {
-  if (!e) return;
+  const isNew = !e;
+  if (isNew) {
+    if (!state.activities.length) return toast("Add an activity first");
+    const end = roundTo5(now());
+    e = { activity_id: (entries[0] && state.activities.some((a) => a.id === entries[0].activity_id) ? entries[0].activity_id : state.activities[0].id),
+      started_at: new Date(end - 3600e3).toISOString(), stopped_at: new Date(end).toISOString(), note: "" };
+  }
   const running = !e.stopped_at;
   const acts = state.activities.some((a) => a.id === e.activity_id) ? state.activities : [{ id: e.activity_id, name: e.name }, ...state.activities];
   const maxNow = toLocalInput(new Date());
   $("#editsheet .sheet").innerHTML = `
     <div class="grab"></div>
-    <h3>Edit entry</h3>
+    <h3>${isNew ? "Add entry" : "Edit entry"}</h3>
     <form id="entryform" class="eform">
       <label>Activity
         <select class="field" name="activity">${acts.map((a) => `<option value="${a.id}" ${a.id === e.activity_id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>
@@ -750,16 +926,18 @@ function openEntry(e) {
         ? `<p class="hint" style="margin:0">Still running. Stop it to set an end time.</p>`
         : `<label>End
         <input class="field num" type="datetime-local" name="end" value="${toLocalInput(e.stopped_at)}" max="${maxNow}" required></label>`}
+      <label>Note
+        <textarea class="field" name="note" rows="2" maxlength="500" placeholder="Optional, e.g. what you worked on">${esc(e.note || "")}</textarea></label>
       <p class="edur num" id="edur"></p>
       <div class="eactions">
-        <button type="button" class="btn ghost danger" id="edel">${icon("trash", 18)}Delete</button>
+        ${isNew ? "<span></span>" : `<button type="button" class="btn ghost danger" id="edel">${icon("trash", 18)}Delete</button>`}
         <span></span>
         <button type="button" class="btn ghost" id="ecancel">Cancel</button>
-        <button type="submit" class="btn" id="esave">Save</button>
+        <button type="submit" class="btn" id="esave">${isNew ? "Add" : "Save"}</button>
       </div>
     </form>`;
   const f = $("#entryform");
-  const initial = { start: f.start.value, end: f.end?.value };
+  const initial = isNew ? {} : { start: f.start.value, end: f.end?.value };
   // datetime-local drops seconds; keep the exact stored time for a field the user didn't touch
   const values = () => ({
     start: f.start.value === initial.start ? new Date(e.started_at) : new Date(f.start.value),
@@ -773,24 +951,24 @@ function openEntry(e) {
   };
   f.oninput = upd; upd();
   $("#ecancel").onclick = () => editSheet.close();
-  $("#edel").onclick = async () => {
+  $("#edel")?.addEventListener("click", async () => {
     if (!confirm("Delete this entry?")) return;
-    try { await api(`/entries/${e.id}`, { method: "DELETE" }); editSheet.close(); await load(); toast("Entry deleted"); }
+    try { await api(`/entries/${e.id}`, { method: "DELETE" }); editSheet.close(); await refreshAfterEdit(); toast("Entry deleted"); }
     catch (err) { toast(err.message); }
-  };
+  });
   f.onsubmit = async (ev) => {
     ev.preventDefault();
     const { start, end } = values();
     if (isNaN(start) || (end && isNaN(end))) return toast("Enter a valid date and time");
-    const body = { activity_id: Number(f.activity.value), started_at: start.toISOString() };
+    const body = { activity_id: Number(f.activity.value), started_at: start.toISOString(), note: f.note.value };
     if (!running) body.stopped_at = end.toISOString();
     $("#esave").disabled = true;
     try {
-      await api(`/entries/${e.id}`, { method: "PUT", body });
+      await api(isNew ? "/entries" : `/entries/${e.id}`, { method: isNew ? "POST" : "PUT", body });
       editSheet.close();
-      await load();
+      await refreshAfterEdit();
       if (running) notify();
-      toast("Entry updated");
+      toast(isNew ? "Entry added" : "Entry updated");
     } catch (err) {
       toast(err.message);
       $("#esave").disabled = false;
@@ -798,7 +976,115 @@ function openEntry(e) {
   };
   editSheet.showModal();
 }
+async function refreshAfterEdit() {
+  if (searchResults && searchQ) { try { searchResults = await api(`/entries?q=${encodeURIComponent(searchQ)}`); } catch {} }
+  await load();
+}
 editSheet.addEventListener("click", (ev) => { if (ev.target === editSheet) editSheet.close(); });
+
+/* ---------- forgotten timer ---------- */
+// A timer running far longer than usual was probably left on by accident; offer to set the real end time.
+let keepRunning = [];
+try { keepRunning = JSON.parse(localStorage.getItem("keepRunning") || "[]"); } catch {}
+function maybeForgotten() {
+  const r = state.running;
+  if (!r || editSheet.open || sheet.open || keepRunning.includes(r.id)) return;
+  const usual = state.stats?.sessions ? state.stats.avg : 0;
+  if (runSec() < Math.max(4 * 3600, 3 * usual)) return;
+  const start = new Date(r.started_at).getTime();
+  const suggest = Math.min(start + (usual || 3600) * 1000, now() - 60e3);
+  const since = new Date(r.started_at).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  $("#editsheet .sheet").innerHTML = `
+    <div class="grab"></div>
+    <h3>Still doing ${esc(r.name)}?</h3>
+    <form id="forgotform" class="eform">
+      <p class="hint" style="margin:0 4px">It has been running for <b class="num">${fmtShort(runSec())}</b>, since ${since}${usual ? `. It usually lasts about ${fmtShort(usual)}` : ""}.</p>
+      <label>When did you actually stop?
+        <input class="field num" type="datetime-local" name="end" value="${toLocalInput(suggest)}" min="${toLocalInput(start)}" max="${toLocalInput(new Date())}" required></label>
+      <div class="eactions">
+        <button type="button" class="btn ghost" id="fkeep">Keep running</button>
+        <span></span>
+        <button type="button" class="btn ghost" id="fnow">Stop now</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>`;
+  const f = $("#forgotform");
+  $("#fkeep").onclick = () => {
+    keepRunning = [...keepRunning.slice(-19), r.id];
+    try { localStorage.setItem("keepRunning", JSON.stringify(keepRunning)); } catch {}
+    editSheet.close();
+  };
+  $("#fnow").onclick = async () => { editSheet.close(); await stop(); };
+  f.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const end = new Date(f.end.value);
+    if (isNaN(end) || end <= start) return toast("Pick a time after it started");
+    try {
+      await api(`/entries/${r.id}`, { method: "PUT", body: { stopped_at: end.toISOString() } });
+      editSheet.close();
+      await load();
+      notify();
+      toast(`Stopped at ${clock(end)}`);
+    } catch (err) { toast(err.message); }
+  };
+  editSheet.showModal();
+}
+
+/* ---------- goals ---------- */
+const periodWord = (p) => (p === "day" ? "today" : "this week");
+function goalState(a) {
+  if (!a.goal_minutes) return null;
+  const v = total(a.id, a.goal_period === "day" ? "today" : "week"), g = a.goal_minutes * 60;
+  return { v, g, pct: Math.min(v / g, 1), done: a.kind !== "limit" && v >= g, over: a.kind === "limit" && v > g };
+}
+function goalLabel(a) {
+  if (!a.goal_minutes) return a.kind === "limit" ? "Set limit" : "Set goal";
+  return `${a.kind === "limit" ? "Limit" : "Goal"} ${fmtShort(a.goal_minutes * 60)} / ${a.goal_period}`;
+}
+function openGoal(act, onSaved) {
+  const limit = act.kind === "limit";
+  let period = act.goal_period || "off";
+  const mins = act.goal_minutes || (limit ? 30 : 60);
+  $("#editsheet .sheet").innerHTML = `
+    <div class="grab"></div>
+    <h3>${esc(act.name)}: ${limit ? "limit" : "goal"}</h3>
+    <form id="goalform" class="eform">
+      <p class="hint" style="margin:0 4px">${limit ? "Try to stay under this much time. The tile warns you when you go over." : "Aim for at least this much time. The tile fills up as you go."}</p>
+      <div class="seg" role="tablist" aria-label="Period">
+        ${[["off", "Off"], ["day", "Per day"], ["week", "Per week"]].map(([p, l]) => `<button type="button" role="tab" data-p="${p}" aria-selected="${period === p}">${l}</button>`).join("")}
+      </div>
+      <div class="goalrow" id="goalrow">
+        <label>Hours<input class="field num" type="number" name="h" min="0" max="168" value="${Math.floor(mins / 60)}" inputmode="numeric"></label>
+        <label>Minutes<input class="field num" type="number" name="m" min="0" max="59" step="5" value="${mins % 60}" inputmode="numeric"></label>
+      </div>
+      <div class="eactions">
+        <span></span><span></span>
+        <button type="button" class="btn ghost" id="gcancel">Cancel</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>`;
+  const f = $("#goalform");
+  const sync = () => {
+    $$("[data-p]", f).forEach((b) => b.setAttribute("aria-selected", b.dataset.p === period));
+    $("#goalrow").hidden = period === "off";
+  };
+  $$("[data-p]", f).forEach((b) => b.onclick = () => { period = b.dataset.p; sync(); });
+  sync();
+  $("#gcancel").onclick = () => editSheet.close();
+  f.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const total = (Number(f.h.value) || 0) * 60 + (Number(f.m.value) || 0);
+    if (period !== "off" && (total < 1 || total > 10080)) return toast("Enter between 1 minute and 168 hours");
+    const body = period === "off" ? { goal_minutes: null } : { goal_minutes: total, goal_period: period };
+    try {
+      await api(`/activities/${act.id}`, { method: "PUT", body });
+      editSheet.close();
+      await load();
+      onSaved?.();
+    } catch (err) { toast(err.message); }
+  };
+  editSheet.showModal();
+}
 
 /* ---------- activities ---------- */
 function pickColor() {
@@ -818,7 +1104,7 @@ function renderManage() {
       <div class="swatches" role="radiogroup" aria-label="Color">
         ${PALETTE.map((c) => `<button type="button" class="sw" style="--c:${c}" data-c="${c}" aria-label="Color ${c}" aria-pressed="${c === pickColor()}"></button>`).join("")}
       </div>
-      <button type="button" class="chip" id="newkind" aria-pressed="${newKind === "limit"}">${icon("down", 14)}Habit to cut back</button>
+      <button type="button" class="chip" id="newkind" aria-pressed="${newKind === "limit"}"><span class="box" aria-hidden="true"></span>Habit to cut back</button>
     </form>
     <h2 class="section"><span>Your activities</span><span>${acts.length}</span></h2>
     ${acts.length ? `<div class="card">${acts.map((a, i) => `
@@ -826,7 +1112,10 @@ function renderManage() {
         <label class="colorbtn" aria-label="Change color"><input type="color" value="${a.color}"></label>
         <span class="name-col">
           <input class="field" value="${esc(a.name)}" maxlength="60" aria-label="Name" enterkeyhint="done">
-          <button type="button" class="chip" data-kind aria-pressed="${a.kind === "limit"}">${icon("down", 12)}Cut back</button>
+          <span class="chips">
+            <button type="button" class="chip" data-kind aria-pressed="${a.kind === "limit"}"><span class="box" aria-hidden="true"></span>Cut back</button>
+            <button type="button" class="chip goalchip${a.goal_minutes ? " set" : ""}" data-goal>${icon("flag", 12)}${goalLabel(a)}</button>
+          </span>
         </span>
         <span class="right" style="display:flex">
           <button class="icon-btn" data-move="-1" ${i === 0 ? "disabled" : ""} aria-label="Move up">${icon("up")}</button>
@@ -834,7 +1123,7 @@ function renderManage() {
           <button class="icon-btn danger" data-remove aria-label="Delete">${icon("trash")}</button>
         </span>
       </div>`).join("")}</div>
-      <p class="hint">Tap a name to rename it, or the dot to change its color. Turn on "Cut back" for habits you want to do less of. Deleting an activity keeps its history.</p>`
+      <p class="hint">Tap a name to rename it, or the dot to change its color. Turn on "Cut back" for habits you want to do less of, and set a daily or weekly goal (or limit). Deleting an activity keeps its history.</p>`
     : `<div class="empty">Your activities will show up here.</div>`}`;
 
   $$(".sw").forEach((b) => b.onclick = () => {
@@ -882,7 +1171,9 @@ function renderManage() {
       const kind = act.kind === "limit" ? "good" : "limit";
       kindEl.setAttribute("aria-pressed", kind === "limit");
       await save({ kind });
+      $("[data-goal]", row).lastChild.textContent = goalLabel(act);
     };
+    $("[data-goal]", row).onclick = () => openGoal(act);
     $("[data-remove]", row).onclick = async () => {
       if (!confirm(`Delete "${act.name}"? Its tracked time stays in History.`)) return;
       try { await api(`/activities/${id}`, { method: "DELETE" }); await load(); } catch (e) { toast(e.message); }
@@ -947,7 +1238,37 @@ $("#csv").onclick = async () => {
   if (!r.ok) return toast("Export failed");
   const url = URL.createObjectURL(await r.blob());
   Object.assign(document.createElement("a"), { href: url, download: "timetrack.csv" }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 10e3);
   sheet.close();
+};
+
+async function download(url, fallbackName) {
+  const r = await fetch(url);
+  if (!r.ok) return toast("Download failed");
+  const name = /filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "")?.[1] || fallbackName;
+  const href = URL.createObjectURL(await r.blob());
+  Object.assign(document.createElement("a"), { href, download: name }).click();
+  setTimeout(() => URL.revokeObjectURL(href), 10e3);
+}
+$("#backup").onclick = async () => { sheet.close(); await download("/api/backup.json", "timetrack-backup.json"); };
+$("#restore").onclick = () => $("#restorefile").click();
+$("#restorefile").onchange = async (ev) => {
+  const file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a Timetrack backup"); }
+  if (data?.app !== "timetrack") return toast("That file isn't a Timetrack backup");
+  const n = Array.isArray(data.entries) ? data.entries.length : 0;
+  if (!confirm(`Restore ${n} ${n === 1 ? "entry" : "entries"} from ${new Date(data.exported_at).toLocaleDateString()}? Nothing is deleted; entries you already have are skipped.`)) return;
+  sheet.close();
+  try {
+    const r = await fetch("/api/restore", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+    const out = await r.json();
+    if (!r.ok) throw new Error(out.error || "Restore failed");
+    toast(`Restored ${out.entries_added} entries${out.entries_skipped ? `, skipped ${out.entries_skipped}` : ""}`);
+    load();
+  } catch (e) { toast(e.message); }
 };
 
 // live tick
