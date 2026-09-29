@@ -174,6 +174,48 @@
   .menu .danger, .menu .danger svg { color: var(--danger); }
   .menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 
+  /* daily chart */
+  .chart { position: relative; padding: 16px 14px 12px; overflow: visible; }
+  .plot { position: relative; margin: 6px 0 44px 30px; }
+  .gl { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+  .gl span { position: absolute; right: 100%; transform: translateY(-50%); padding-right: 6px; font-size: 11px; color: var(--faint); }
+  .cols { position: absolute; left: 0; right: 0; bottom: -34px; top: 0; display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+  .col { display: flex; flex-direction: column; align-items: center; min-width: 0; border-radius: 6px; }
+  .col .stack { width: 100%; display: flex; align-items: flex-end; justify-content: center; border-radius: 6px; }
+  .col .segs { width: min(100%, 18px); display: flex; flex-direction: column-reverse; gap: 2px; border-radius: 4px 4px 0 0; overflow: hidden; }
+  .col .segs span { background: var(--c); min-height: 2px; flex-shrink: 0; }
+  .col .xl { display: grid; justify-items: center; margin-top: 6px; font-size: 10px; line-height: 1.25; color: var(--faint); }
+  .col .xl b { font-weight: 600; color: var(--muted); }
+  .col.today .xl, .col.today .xl b { color: var(--ink); }
+  .col.sel .stack { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+  .lg { display: inline-flex; align-items: center; gap: 6px; }
+  .lg i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+  .tip { position: absolute; top: 8px; z-index: 3; min-width: 170px; max-width: 240px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 13px; pointer-events: none; }
+  .tip .th { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--muted); }
+  .tip .th b { color: var(--ink); }
+  .tip .tr { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 2px 0; }
+  .tip .tr i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+  .tip .tr.muted { display: block; color: var(--muted); }
+
+  /* entry rows + editor */
+  button.rowi { width: 100%; text-align: left; }
+  button.rowi:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .rowi .chev { color: var(--faint); width: 28px; display: grid; place-items: center; }
+  .sheet h3 { margin: 0 4px 14px; font-size: 18px; }
+  .eform { display: grid; gap: 12px; }
+  .eform label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .eform .field { color: var(--ink); font-weight: 500; min-height: 48px; }
+  .eform select.field { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .edur { margin: 0 4px; color: var(--muted); font-size: 14px; }
+  .edur.bad { color: var(--danger); }
+  .eactions { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; margin-top: 4px; }
+  .eactions .btn { margin-top: 0; }
+  .btn.ghost { background: var(--surface-2); color: var(--ink); }
+  .btn.ghost.danger { color: var(--danger); }
+
   #toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
     max-width: 420px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px;
     font-weight: 550; text-align: center; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
@@ -200,6 +242,7 @@
   <symbol id="i-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 
@@ -232,6 +275,7 @@
     </div>
   </div>
 </dialog>
+<dialog id="editsheet"><div class="sheet"></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://accounts.google.com/gsi/client" async></script>
 
@@ -240,13 +284,14 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const app = $("#app");
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const PALETTE = ["#e9a23b", "#e5684f", "#d9577f", "#9b6fd6", "#5b8def", "#3aa7c9", "#3cad8c", "#76b041", "#a08a6b", "#7d8491"];
+// validated categorical order: adjacent pairs stay distinguishable for colorblind users on light and dark
+const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
 let signedIn = false;
 let state = { activities: [], running: null, totals: [], user: null };
 let view = "track";
 let offset = 0; // serverNow - clientNow ms
 let entries = [];
-let newColor = PALETTE[0];
+let newColor = null; // user-picked color for the next activity; null = next unused palette slot
 
 async function api(path, opts = {}) {
   const r = await fetch("/api" + path, {
@@ -401,11 +446,107 @@ async function stop() {
 }
 
 /* ---------- history ---------- */
+const DAYS = 14;
+const dayStart = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const entryEnd = (e) => (e.stopped_at ? new Date(e.stopped_at).getTime() : now());
+const dur = (e) => (entryEnd(e) - new Date(e.started_at)) / 1000;
+
+// seconds per activity per calendar day, splitting entries that cross midnight
+function dailyTotals() {
+  const first = addDays(dayStart(new Date()), -(DAYS - 1));
+  const days = Array.from({ length: DAYS }, (_, i) => ({ date: addDays(first, i), by: new Map(), total: 0 }));
+  for (const e of entries) {
+    const s = new Date(e.started_at).getTime(), end = entryEnd(e);
+    for (const d of days) {
+      const a = d.date.getTime(), b = addDays(d.date, 1).getTime();
+      const v = (Math.min(end, b) - Math.max(s, a)) / 1000;
+      if (v > 0) { d.by.set(e.activity_id, (d.by.get(e.activity_id) || 0) + v); d.total += v; }
+    }
+  }
+  return days;
+}
+
+// activities that appear in the data, in the user's own order (archived ones last)
+function chartSeries() {
+  const seen = new Map();
+  for (const e of entries) if (!seen.has(e.activity_id)) seen.set(e.activity_id, { id: e.activity_id, name: e.name, color: e.color });
+  const order = state.activities.map((a) => a.id);
+  const rank = (id) => (order.includes(id) ? order.indexOf(id) : 1e6 + id);
+  return [...seen.values()].map((s) => ({ ...s, ...(state.activities.find((a) => a.id === s.id) || {}) }))
+    .sort((a, b) => rank(a.id) - rank(b.id));
+}
+
+function niceStepHours(maxH) {
+  for (const s of [0.5, 1, 2, 3, 4, 6, 8, 12]) if (maxH / s <= 4) return s;
+  return 24;
+}
+
+function renderDaily() {
+  const days = dailyTotals();
+  const series = chartSeries();
+  const maxH = Math.max(1, ...days.map((d) => d.total / 3600));
+  const step = niceStepHours(maxH);
+  const top = Math.ceil(maxH / step) * step;
+  const H = 150;
+  const ticks = [];
+  for (let t = 0; t <= top + 1e-9; t += step) ticks.push(t);
+  const todayKey = dayStart(new Date()).getTime();
+  const active = days.filter((d) => d.total > 0);
+  const avg = active.length ? active.reduce((s, d) => s + d.total, 0) / active.length : 0;
+
+  const bars = days.map((d, i) => {
+    const segs = series.filter((s) => d.by.get(s.id) > 0)
+      .map((s) => `<span style="--c:${s.color};height:${(d.by.get(s.id) / 3600 / top) * H}px"></span>`).join("");
+    const isToday = d.date.getTime() === todayKey;
+    const wd = d.date.toLocaleDateString(undefined, { weekday: "narrow" });
+    const label = d.date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+    return `<button class="col${isToday ? " today" : ""}" data-day="${i}" aria-label="${esc(label)}: ${fmtShort(d.total)}">
+      <span class="stack" style="height:${H}px">${segs ? `<span class="segs">${segs}</span>` : ""}</span>
+      <span class="xl"><b>${wd}</b>${d.date.getDate()}</span></button>`;
+  }).join("");
+
+  const grid = ticks.map((t) => `<div class="gl" style="bottom:${(t / top) * H}px"><span>${t ? (t % 1 ? `${t * 60}m` : `${t}h`) : ""}</span></div>`).join("");
+  const legend = series.map((s) => `<span class="lg" style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join("");
+
+  return `<h2 class="section"><span>Daily</span><span class="num">${avg ? `avg ${fmtShort(avg)} / day` : ""}</span></h2>
+    <div class="card chart">
+      <div class="plot" style="height:${H}px">${grid}<div class="cols">${bars}</div></div>
+      ${series.length ? `<div class="legend">${legend}</div>` : ""}
+      <div class="tip" id="tip" hidden></div>
+    </div>`;
+}
+
+function bindDaily() {
+  const days = dailyTotals(), series = chartSeries();
+  const tip = $("#tip"), chart = $(".chart");
+  if (!tip) return;
+  let pinned = null;
+  const show = (btn) => {
+    const d = days[btn.dataset.day];
+    const rows = series.filter((s) => d.by.get(s.id) > 0).reverse()
+      .map((s) => `<div class="tr" style="--c:${s.color}"><i></i><span>${esc(s.name)}</span><b class="num">${fmtShort(d.by.get(s.id))}</b></div>`).join("");
+    tip.innerHTML = `<div class="th"><span>${d.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</span><b class="num">${fmtShort(d.total)}</b></div>${rows || `<div class="tr muted">Nothing tracked</div>`}`;
+    tip.hidden = false;
+    $$(".col", chart).forEach((c) => c.classList.toggle("sel", c === btn));
+    const cr = chart.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    const w = tip.offsetWidth;
+    tip.style.left = `${Math.min(Math.max(br.left - cr.left + br.width / 2 - w / 2, 8), cr.width - w - 8)}px`;
+  };
+  const hide = () => { tip.hidden = true; $$(".col", chart).forEach((c) => c.classList.remove("sel")); };
+  $$(".col", chart).forEach((btn) => {
+    btn.onpointerenter = (e) => { if (e.pointerType === "mouse" && !pinned) show(btn); };
+    btn.onpointerleave = (e) => { if (e.pointerType === "mouse" && !pinned) hide(); };
+    btn.onclick = () => { if (pinned === btn) { pinned = null; hide(); } else { pinned = btn; show(btn); } };
+  });
+}
+
 function renderHistory() {
   const acts = state.activities;
   const week = acts.map((a) => ({ ...a, v: total(a.id, "week") })).filter((a) => a.v > 0).sort((a, b) => b.v - a.v);
   const max = Math.max(1, ...week.map((a) => a.v));
-  let html = `<h2 class="section"><span>This week</span><span class="num">${fmtShort(week.reduce((s, a) => s + a.v, 0))}</span></h2>`;
+  let html = renderDaily();
+  html += `<h2 class="section"><span>This week</span><span class="num">${fmtShort(week.reduce((s, a) => s + a.v, 0))}</span></h2>`;
   html += week.length
     ? `<div class="card wk">${week.map((a) => `<div style="--c:${a.color}">
         <div class="l"><span>${esc(a.name)}</span><span class="num">${fmtShort(a.v)}</span></div>
@@ -419,30 +560,102 @@ function renderHistory() {
       if (!days.has(key)) days.set(key, []);
       days.get(key).push(e);
     }
-    const todayKey = new Date().toDateString(), yKey = new Date(Date.now() - 864e5).toDateString();
+    const todayKey = new Date().toDateString(), yKey = addDays(new Date(), -1).toDateString();
     for (const [key, list] of days) {
       const d = new Date(key);
       const label = key === todayKey ? "Today" : key === yKey ? "Yesterday" : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-      const dur = (e) => ((e.stopped_at ? new Date(e.stopped_at).getTime() : now()) - new Date(e.started_at)) / 1000;
       html += `<div class="day"><b>${label}</b><span class="num">${fmtShort(list.reduce((s, e) => s + dur(e), 0))}</span></div><div class="card">`;
-      html += list.map((e) => `<div class="rowi" style="--c:${e.color}">
+      html += list.map((e) => `<button class="rowi entry" data-entry="${e.id}" style="--c:${e.color}" aria-label="Edit ${esc(e.name)} entry">
           <span class="bar"></span>
           <span><div>${esc(e.name)}</div><div class="t num">${clock(e.started_at)} – ${e.stopped_at ? clock(e.stopped_at) : "now"}</div></span>
-          <span class="right"><span class="d num">${fmtShort(dur(e))}</span>
-          <button class="icon-btn danger" data-del="${e.id}" aria-label="Delete entry">${icon("x", 18)}</button></span></div>`).join("");
+          <span class="right"><span class="d num">${fmtShort(dur(e))}</span><span class="chev">${icon("edit", 16)}</span></span></button>`).join("");
       html += `</div>`;
     }
+    html += `<p class="hint">Tap an entry to change its times or activity.</p>`;
   } else {
-    html += `<h2 class="section"><span>Last 14 days</span></h2><div class="empty">No entries yet.</div>`;
+    html += `<h2 class="section"><span>Last ${DAYS} days</span></h2><div class="empty">No entries yet.</div>`;
   }
   app.innerHTML = html;
-  $$("[data-del]").forEach((b) => b.onclick = async () => {
-    if (!confirm("Delete this entry?")) return;
-    try { await api(`/entries/${b.dataset.del}`, { method: "DELETE" }); await load(); } catch (e) { toast(e.message); }
-  });
+  bindDaily();
+  $$("[data-entry]").forEach((b) => b.onclick = () => openEntry(entries.find((e) => e.id == b.dataset.entry)));
 }
 
+/* ---------- edit entry ---------- */
+const toLocalInput = (d) => { const x = new Date(d); return new Date(x - x.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
+const editSheet = $("#editsheet");
+function openEntry(e) {
+  if (!e) return;
+  const running = !e.stopped_at;
+  const acts = state.activities.some((a) => a.id === e.activity_id) ? state.activities : [{ id: e.activity_id, name: e.name }, ...state.activities];
+  const maxNow = toLocalInput(new Date());
+  $("#editsheet .sheet").innerHTML = `
+    <div class="grab"></div>
+    <h3>Edit entry</h3>
+    <form id="entryform" class="eform">
+      <label>Activity
+        <select class="field" name="activity">${acts.map((a) => `<option value="${a.id}" ${a.id === e.activity_id ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>
+      <label>Start
+        <input class="field num" type="datetime-local" name="start" value="${toLocalInput(e.started_at)}" max="${maxNow}" required></label>
+      ${running
+        ? `<p class="hint" style="margin:0">Still running. Stop it to set an end time.</p>`
+        : `<label>End
+        <input class="field num" type="datetime-local" name="end" value="${toLocalInput(e.stopped_at)}" max="${maxNow}" required></label>`}
+      <p class="edur num" id="edur"></p>
+      <div class="eactions">
+        <button type="button" class="btn ghost danger" id="edel">${icon("trash", 18)}Delete</button>
+        <span></span>
+        <button type="button" class="btn ghost" id="ecancel">Cancel</button>
+        <button type="submit" class="btn" id="esave">Save</button>
+      </div>
+    </form>`;
+  const f = $("#entryform");
+  const initial = { start: f.start.value, end: f.end?.value };
+  // datetime-local drops seconds; keep the exact stored time for a field the user didn't touch
+  const values = () => ({
+    start: f.start.value === initial.start ? new Date(e.started_at) : new Date(f.start.value),
+    end: running ? null : f.end.value === initial.end ? new Date(e.stopped_at) : new Date(f.end.value),
+  });
+  const upd = () => {
+    const { start, end } = values();
+    const secs = ((end ? end.getTime() : now()) - start) / 1000;
+    $("#edur").textContent = isNaN(secs) ? "" : secs > 0 ? `Duration ${fmtShort(secs)}` : "End must be after start";
+    $("#edur").classList.toggle("bad", !(secs > 0));
+  };
+  f.oninput = upd; upd();
+  $("#ecancel").onclick = () => editSheet.close();
+  $("#edel").onclick = async () => {
+    if (!confirm("Delete this entry?")) return;
+    try { await api(`/entries/${e.id}`, { method: "DELETE" }); editSheet.close(); await load(); toast("Entry deleted"); }
+    catch (err) { toast(err.message); }
+  };
+  f.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const { start, end } = values();
+    if (isNaN(start) || (end && isNaN(end))) return toast("Enter a valid date and time");
+    const body = { activity_id: Number(f.activity.value), started_at: start.toISOString() };
+    if (!running) body.stopped_at = end.toISOString();
+    $("#esave").disabled = true;
+    try {
+      await api(`/entries/${e.id}`, { method: "PUT", body });
+      editSheet.close();
+      await load();
+      if (running) notify();
+      toast("Entry updated");
+    } catch (err) {
+      toast(err.message);
+      $("#esave").disabled = false;
+    }
+  };
+  editSheet.showModal();
+}
+editSheet.addEventListener("click", (ev) => { if (ev.target === editSheet) editSheet.close(); });
+
 /* ---------- activities ---------- */
+function pickColor() {
+  if (newColor) return newColor;
+  const used = new Set(state.activities.map((a) => a.color.toLowerCase()));
+  return PALETTE.find((c) => !used.has(c)) || PALETTE[state.activities.length % PALETTE.length];
+}
 function renderManage() {
   const acts = state.activities;
   app.innerHTML = `
@@ -453,7 +666,7 @@ function renderManage() {
         <button class="btn" id="addbtn" type="submit">${icon("plus", 18)}Add</button>
       </div>
       <div class="swatches" role="radiogroup" aria-label="Color">
-        ${PALETTE.map((c) => `<button type="button" class="sw" style="--c:${c}" data-c="${c}" aria-label="Color ${c}" aria-pressed="${c === newColor}"></button>`).join("")}
+        ${PALETTE.map((c) => `<button type="button" class="sw" style="--c:${c}" data-c="${c}" aria-label="Color ${c}" aria-pressed="${c === pickColor()}"></button>`).join("")}
       </div>
     </form>
     <h2 class="section"><span>Your activities</span><span>${acts.length}</span></h2>
@@ -480,8 +693,8 @@ function renderManage() {
     if (!name) return $("#newname").focus();
     $("#addbtn").disabled = true;
     try {
-      await api("/activities", { method: "POST", body: { name, color: newColor } });
-      newColor = PALETTE[(PALETTE.indexOf(newColor) + 1) % PALETTE.length];
+      await api("/activities", { method: "POST", body: { name, color: pickColor() } });
+      newColor = null;
       await load();
       $("#newname")?.focus();
       toast(`Added ${name}`);

@@ -57,7 +57,7 @@ await pool.query(`
   CREATE TABLE IF NOT EXISTS activities (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    color TEXT NOT NULL DEFAULT '#d7a43b',
+    color TEXT NOT NULL DEFAULT '#3987e5',
     sort INT NOT NULL DEFAULT 0,
     archived BOOLEAN NOT NULL DEFAULT FALSE
   );
@@ -176,7 +176,7 @@ function cleanName(name) {
 app.post("/api/activities", h(async (req, res) => {
   const name = cleanName(req.body.name);
   if (!name) return res.status(400).json({ error: "Name required" });
-  const color = COLOR_RE.test(req.body.color) ? req.body.color : "#d7a43b";
+  const color = COLOR_RE.test(req.body.color) ? req.body.color : "#3987e5";
   const [{ n }] = await q("SELECT count(*)::int AS n FROM activities WHERE user_id=$1 AND NOT archived", [req.uid]);
   if (n >= MAX_ACTIVITIES) return res.status(400).json({ error: `Limit is ${MAX_ACTIVITIES} activities` });
   const [row] = await q(
@@ -229,6 +229,38 @@ app.get("/api/entries", h(async (req, res) => {
       [req.uid, days]
     )
   );
+}));
+
+app.put("/api/entries/:id", h(async (req, res) => {
+  const [entry] = await q("SELECT * FROM entries WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
+  if (!entry) return res.status(404).json({ error: "Not found" });
+  const date = (v) => (typeof v === "string" && !isNaN(Date.parse(v)) ? new Date(v) : null);
+  const soon = Date.now() + 60e3;
+  const start = req.body.started_at === undefined ? entry.started_at : date(req.body.started_at);
+  let stop = req.body.stopped_at === undefined ? entry.stopped_at : req.body.stopped_at === null ? null : date(req.body.stopped_at);
+  if (!start || (req.body.stopped_at && !stop)) return res.status(400).json({ error: "Invalid date" });
+  if (stop === null && entry.stopped_at !== null) return res.status(400).json({ error: "End time required" });
+  if (start > soon || (stop && stop > soon)) return res.status(400).json({ error: "Times can't be in the future" });
+  if (stop && stop <= start) return res.status(400).json({ error: "End must be after start" });
+  let activityId = entry.activity_id;
+  if (req.body.activity_id !== undefined) {
+    const [act] = await q("SELECT id FROM activities WHERE id=$1 AND user_id=$2", [req.body.activity_id, req.uid]);
+    if (!act) return res.status(400).json({ error: "Activity not found" });
+    activityId = act.id;
+  }
+  const [clash] = await q(
+    `SELECT a.name, e.started_at, e.stopped_at FROM entries e JOIN activities a ON a.id=e.activity_id
+     WHERE e.user_id=$1 AND e.id<>$2
+       AND tstzrange(e.started_at, COALESCE(e.stopped_at, now())) && tstzrange($3::timestamptz, COALESCE($4::timestamptz, now()))
+     LIMIT 1`,
+    [req.uid, entry.id, start, stop]
+  );
+  if (clash) return res.status(409).json({ error: `Overlaps with ${clash.name}`, clash });
+  const [row] = await q(
+    "UPDATE entries SET started_at=$3, stopped_at=$4, activity_id=$5 WHERE id=$1 AND user_id=$2 RETURNING *",
+    [entry.id, req.uid, start, stop, activityId]
+  );
+  res.json(row);
 }));
 
 app.delete("/api/entries/:id", h(async (req, res) => {
