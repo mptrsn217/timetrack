@@ -72,3 +72,31 @@ Reduce bad habits · reinforce good ones · see the whole picture.
 Free → www.moonglare.ee
 
 Profile picture: `../logo/moonglare-profile-picture-1080.jpg`
+
+---
+
+## Fact posts (moonglare-fact-01 to 03)
+
+Single posts with one researched fact each. Post them on their own, spaced out between other posts.
+
+**fact-01: Clarity (2×)**
+In one study, people used their phones about twice as much as they guessed. 📱
+Not because we're careless: time simply slips by without us noticing. The first step to a better day is seeing where the hours actually go.
+Moonglare: one tap to start, one tap to stop, and the real numbers at the end of the week.
+www.moonglare.ee
+Source: Andrews et al. (2015), "Beyond Self-Report", PLOS ONE.
+#screentime #digitalwellbeing #timetracking #selfawareness #moonglare
+
+**fact-02: Focus (23 min)**
+After an interruption, it takes about 23 minutes to get fully back to what you were doing. ⏳
+So protect the time you have. Start a timer and let the screen go quiet: just the clock and one calm line on how you're doing.
+www.moonglare.ee
+Source: research on interrupted work by Gloria Mark, University of California, Irvine.
+#deepwork #focus #productivity #mindfulproductivity #moonglare
+
+**fact-03: Habits (66 days)**
+On average, a new habit takes 66 days to become automatic, and in the study missing a day now and then didn't undo the progress. 🌱
+Check in with a tap, watch your streak grow and see the heatmap fill up, one day at a time.
+www.moonglare.ee
+Source: Lally et al. (2010), "How are habits formed", European Journal of Social Psychology.
+#habits #habittracker #consistency #selfimprovement #moonglare
