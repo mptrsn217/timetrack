@@ -7,5 +7,5 @@
   el.addEventListener("animationend", (e) => { if (e.target === el) el.remove(); });
   // safety net if the animations are held back (e.g. the page opened in the background): the intro lasts
   // 4.8s from the first paint, so never keep it longer than ~5.6s after the page started loading
-  setTimeout(() => el.isConnected && el.remove(), Math.max(0, 5600 - performance.now()));
+  setTimeout(() => el.isConnected && el.remove(), Math.max(0, 4500 - performance.now()));
 })();

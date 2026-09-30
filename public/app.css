@@ -682,47 +682,41 @@ dialog.minidlg:focus-visible { outline: none; } /* the whole screen is the butto
 @keyframes mhint { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .mhint { animation: none; } }
 
-/* ---------- startup intro: the Moonglare logo animation, minimal ----------
-   water and horizon 0–0.9s · moon rises 0.6–2.4s · glow 2.2–3.2s · landscape away, moon settles 3.0–4.2s · fade 4.3–4.8s */
+/* ---------- startup intro: the Moonglare logo drawing itself ----------
+   horizon spreads 0.2–1.0s · moon rises 0.5–1.9s · reflection 1.3–2.3s · soft glow 1.7–2.7s · gentle fade 3.1–3.7s
+   Every piece is cut from /logo.svg, so the end frame is exactly the logo. Positions are fractions of its 316×340 box. */
 .nointro #intro { display: none; }
-#intro { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #081420;
-  --pale: #e3f4fd; --amber: #5cbfef; --hz: 62vh; --moon: min(20vmin, 120px);
-  animation: i-out .5s ease 4.3s forwards; }
+#intro { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: var(--bg);
+  animation: i-out .6s ease 3.1s forwards; }
 @keyframes i-out { to { opacity: 0; visibility: hidden; } }
-@keyframes i-in { to { opacity: 1; } }
-@keyframes i-away { to { opacity: 0; } }
-
-/* still water (it sits in front of the moon, so the moon rises from behind the horizon) and one thin horizon line */
-.i-water { position: absolute; left: 0; right: 0; top: var(--hz); bottom: 0; z-index: 2; background: #050d16; opacity: 0;
-  animation: i-in .9s ease forwards, i-away .9s ease 3s forwards; }
-.i-horizon { position: absolute; left: 12%; right: 12%; top: var(--hz); height: 1px; z-index: 3; opacity: 0;
-  background: linear-gradient(90deg, transparent, rgba(227,244,253,.35), transparent);
-  animation: i-in .9s ease .2s forwards, i-away .8s ease 3s forwards; }
-
-.i-moon { position: absolute; left: 50%; top: calc(var(--hz) + var(--moon)); width: var(--moon); height: var(--moon); z-index: 1;
-  margin: calc(var(--moon) / -2) 0 0 calc(var(--moon) / -2); border-radius: 50%; background: var(--pale);
-  animation: i-rise 1.8s cubic-bezier(.22,.7,.2,1) .6s forwards, i-settle 1.2s cubic-bezier(.4,0,.2,1) 3s forwards; }
-@keyframes i-rise { to { top: 40vh; } }
-@keyframes i-settle { from { top: 40vh; } to { top: 50vh; } }
-
-/* a few faint reflection lines under the moon */
-.i-refl { position: absolute; left: 50%; top: 6px; width: calc(var(--moon) * .9); height: 22vh; margin-left: calc(var(--moon) * -.45);
-  background: repeating-linear-gradient(to bottom, rgba(227,244,253,.5) 0 1px, transparent 1px 12px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent); mask-image: linear-gradient(to bottom, #000, transparent);
-  transform: scaleX(.1); opacity: 0; animation: i-spread 1.4s ease-out 1.4s forwards; }
-@keyframes i-spread { to { transform: scaleX(1); opacity: .7; } }
-
-/* one soft glow, which stays with the moon as it settles */
-.i-glow { position: absolute; left: 50%; top: 40vh; width: calc(var(--moon) * 3.2); height: calc(var(--moon) * 3.2); z-index: 0;
-  margin: calc(var(--moon) * -1.6) 0 0 calc(var(--moon) * -1.6); border-radius: 50%; opacity: 0;
-  background: radial-gradient(circle, rgba(92,191,239,.34), rgba(92,191,239,.09) 45%, transparent 70%);
-  animation: i-glow 1s ease-out 2.2s forwards, i-settle 1.2s cubic-bezier(.4,0,.2,1) 3s forwards; }
+.i-logo { --w: min(52vmin, 240px); --h: calc(var(--w) * 340 / 316);
+  position: absolute; left: 50%; top: 50%; width: var(--w); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+  animation: i-lift .6s ease 3.1s forwards; }
+@keyframes i-lift { to { transform: scale(1.04); } }
+.i-sky, .i-water, .i-moon { background: url(/logo.svg) no-repeat; background-size: var(--w) var(--h); }
+.i-sky { background: none; position: absolute; left: 0; right: 0; top: 0; height: 62%; overflow: hidden; }
+/* the moon: the top of the logo, slid below the horizon and rising back into place */
+.i-moon { position: absolute; left: 0; top: 0; width: var(--w); height: var(--h); transform: translateY(62%);
+  animation: i-rise 1.4s cubic-bezier(.22,.7,.2,1) .5s forwards; }
+@keyframes i-rise { to { transform: none; } }
+.i-hz { position: absolute; left: 2.5%; right: 2.5%; top: 62%; height: calc(var(--w) * 8 / 316); border-radius: 99px;
+  background: linear-gradient(90deg, rgba(111,205,247,.25), #3aa8e6, rgba(31,143,214,.25));
+  transform: scaleX(0); animation: i-spread .8s cubic-bezier(.3,.7,.2,1) .2s forwards; }
+@keyframes i-spread { to { transform: none; } }
+/* the reflection: the bottom of the logo, revealed row by row from the horizon down */
+.i-water { position: absolute; left: 0; right: 0; top: 64.5%; bottom: 0; background-position: 0 calc(var(--h) * -.645);
+  clip-path: inset(0 0 100% 0); opacity: .4; animation: i-reveal 1s ease-out 1.3s forwards; }
+@keyframes i-reveal { to { clip-path: inset(0); opacity: 1; } }
+.i-glow { position: absolute; left: 50%; top: 29.4%; width: calc(var(--w) * .95); height: calc(var(--w) * .95);
+  margin: calc(var(--w) * -.475) 0 0 calc(var(--w) * -.475); border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, rgba(92,191,239,.28), rgba(92,191,239,.08) 50%, transparent 70%);
+  animation: i-glow 1s ease-out 1.7s forwards; }
 @keyframes i-glow { to { opacity: 1; } }
 
-/* less motion: just the moon, briefly */
+/* less motion: the finished logo, briefly */
 @media (prefers-reduced-motion: reduce) {
   #intro { animation: i-out .4s ease 1s forwards; }
-  #intro > * { animation: none !important; }
-  .i-water, .i-horizon, .i-refl { display: none; }
-  .i-moon, .i-glow { top: 50vh; opacity: 1; }
+  #intro * { animation: none !important; }
+  .i-moon, .i-hz { transform: none; }
+  .i-water { clip-path: none; opacity: 1; }
 }

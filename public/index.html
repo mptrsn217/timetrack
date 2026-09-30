@@ -13,17 +13,19 @@
 <script src="/theme.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="/logo.svg" as="image">
 <link rel="stylesheet" href="/app.css">
 </head>
 <body class="out">
-<!-- Startup intro (Moonglare logo animation), minimal: the moon rises over still water, glows, and settles
-     in the centre. Pure CSS; js/00-intro.js removes it when it ends. -->
+<!-- Startup intro: the logo draws itself on the page background. The moon rises from behind the horizon,
+     the horizon spreads, the reflection appears, then a gentle fade. Pure CSS; js/00-intro.js removes it. -->
 <div id="intro" role="img" aria-label="Moonglare">
-  <div class="i-glow"></div>
-  <div class="i-moon"></div>
-  <div class="i-water"><div class="i-refl"></div></div>
-  <div class="i-horizon"></div>
-</div>
+  <div class="i-logo">
+    <div class="i-glow"></div>
+    <div class="i-sky"><div class="i-moon"></div></div>
+    <div class="i-hz"></div>
+    <div class="i-water"></div>
+  </div>
 </div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></symbol>
