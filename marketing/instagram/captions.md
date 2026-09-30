@@ -100,3 +100,14 @@ Check in with a tap, watch your streak grow and see the heatmap fill up, one day
 www.moonglare.ee
 Source: Lally et al. (2010), "How are habits formed", European Journal of Social Psychology.
 #habits #habittracker #consistency #selfimprovement #moonglare
+
+---
+
+## Desk mockup (moonglare-desk-timer)
+
+`moonglare-desk-timer.png` is the clean image (for stories, the website or ads); `moonglare-desk-timer-post.png` has the text.
+
+Start the timer. Put the phone down. ☕
+When a session starts, Moonglare's screen goes quiet: just the time and one line on how you're doing. Nothing to scroll, nothing to tap.
+www.moonglare.ee
+#deepwork #focus #minimalism #productivity #moonglare
