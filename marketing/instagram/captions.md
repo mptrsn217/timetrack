@@ -103,15 +103,15 @@ Source: Lally et al. (2010), "How are habits formed", European Journal of Social
 
 ---
 
-## Profile banner (banner-images/moonglare-panorama-1 to 3)
+## Profile banner (banner-images/moonglare-banner-1 to 3)
 
-Three posts that form one wide image across a row of the profile grid. `moonglare-panorama-full.png` is the whole scene;
-`preview-profile-grid.jpg` shows how the row looks on the profile.
+Three posts that form one wide image across a row of the profile grid. `moonglare-banner-full.png` is the whole scene;
+`moonglare-banner-preview.jpg` shows how the row looks on the profile.
 
 **Post them in this order so they line up left → right: 3 first, then 2, then 1 last.**
 They need to be the three most recent posts to sit together in one row (or keep your total post count a multiple of 3 before you start).
 
-Caption for all three (or only on panorama-1, the last one posted):
+Caption for all three (or only on banner-1, the last one posted):
 Meet Moonglare 🌙 Better days start with noticing how you spend them.
 Reduce bad habits, reinforce good ones, and see where the time goes. Free at www.moonglare.ee
 #moonglare #timetracking #habittracker #productivity

@@ -1,4 +1,4 @@
-// A 3-post panorama for the Instagram profile grid: one 3240×1350 scene cut into three 1080×1350 posts.
+// A 3-post banner for the Instagram profile grid: one 3240×1350 scene cut into three 1080×1350 posts.
 // The profile grid shows each post as a centred 3:4 crop, so everything important stays 60px+ away from the
 // tile edges; only the horizon line and the water run across the joins.
 import fs from "fs";
@@ -73,25 +73,25 @@ const html = `<!doctype html><meta charset="utf-8"><style>${FONT_CSS}
 
 const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--allow-file-access-from-files"] });
 const page = await browser.newPage();
-const file = path.resolve("build-panorama.html");
+const file = path.resolve("build-banner.html");
 fs.writeFileSync(file, html);
 await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
 await page.goto(pathToFileURL(file).href, { waitUntil: "load" });
 await page.evaluate(() => document.fonts.ready);
 await new Promise((r) => setTimeout(r, 400));
-const full = `${OUT}/moonglare-panorama-full.png`;
+const full = `${OUT}/moonglare-banner-full.png`;
 await page.screenshot({ path: full });
 fs.unlinkSync(file);
 await browser.close();
 
 // the three posts, and a preview of how they sit in the profile grid (3:4 crops with small gaps)
 for (let i = 0; i < 3; i++) {
-  await sharp(full).extract({ left: i * 1080, top: 0, width: 1080, height: 1350 }).png().toFile(`${OUT}/moonglare-panorama-${i + 1}.png`);
+  await sharp(full).extract({ left: i * 1080, top: 0, width: 1080, height: 1350 }).png().toFile(`${OUT}/moonglare-banner-${i + 1}.png`);
 }
 const cropW = Math.round(1350 * 3 / 4), gap = 6;
 const crops = await Promise.all([0, 1, 2].map((i) =>
   sharp(full).extract({ left: i * 1080 + Math.round((1080 - cropW) / 2), top: 0, width: cropW, height: 1350 }).toBuffer()));
 await sharp({ create: { width: cropW * 3 + gap * 2, height: 1350, channels: 3, background: "#ffffff" } })
   .composite(crops.map((b, i) => ({ input: b, left: i * (cropW + gap), top: 0 }))).jpeg({ quality: 88 })
-  .toFile(`${OUT}/preview-profile-grid.jpg`);
-console.log("panorama done");
+  .toFile(`${OUT}/moonglare-banner-preview.jpg`);
+console.log("banner done");
