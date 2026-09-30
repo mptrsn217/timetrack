@@ -613,7 +613,7 @@
 /* minimal screen: nearly black and dim, only the timer and one sentence */
 dialog.minidlg { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; box-shadow: none;
   background: #000; color: #8b9099; overflow: hidden; }
-dialog.minidlg::backdrop { background: #000; }
+dialog.minidlg::backdrop { background: transparent; }
 .mini { height: 100%; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center;
   padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px); cursor: pointer; user-select: none; -webkit-user-select: none; }
 .mname { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #6f747d; }

@@ -136,23 +136,24 @@ function renderTrack() {
   $("#pausebtn")?.addEventListener("click", openPause);
   bindStarter();
   $$("[data-live]").forEach((b) => b.onclick = openLive);
-  $("#clock")?.addEventListener("click", openMini); // the big timer opens the minimal screen
+  $("#clock")?.addEventListener("click", (e) => openMini(pointOf(e.currentTarget))); // the big timer opens the minimal screen
   $("#resumenow")?.addEventListener("click", resumeBreak);
   $("#endbreak")?.addEventListener("click", async () => {
     try { await api("/pause/cancel", { method: "POST" }); await load(); toast("Session ended"); } catch (e) { toast(e.message); }
   });
   bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => openActivity());
-  $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id)));
+  $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id), pointOf(e.currentTarget)));
   $("#setgoals")?.addEventListener("click", () => openGoal(state.activities.find((a) => !a.goal_minutes) || state.activities[0]));
   $$(".tile").forEach((b) => {
-    b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id));
+    b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id), pointOf(b));
     onHold(b, () => openActivity(state.activities.find((a) => a.id == b.dataset.id)));
   });
   $("#addact")?.addEventListener("click", () => openActivity());
 }
 
-async function start(id) {
+// `from`: where the tap was, so the minimal screen can grow out of that tile
+async function start(id, from) {
   try {
     const out = await api("/start", { method: "POST", body: { activity_id: id } });
     if (out.queued) { // offline: show it running now; the server gets it later with this start time
@@ -161,7 +162,7 @@ async function start(id) {
       render();
     } else await load();
     notify();
-    openAutoScreen();
+    openAutoScreen(from);
   } catch (e) { toast(e.message); }
 }
 async function stop() {

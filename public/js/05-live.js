@@ -6,11 +6,12 @@ const setPref = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catc
 const keepOnPref = () => pref("liveKeepOn", true);
 // what opens when a timer starts: "off", "mini" (minimal screen) or "live" (detailed screen)
 const autoScreenPref = () => {
-  try { return localStorage.getItem("autoScreen") || (localStorage.getItem("liveAuto") === "1" ? "live" : "off"); } catch { return "off"; }
+  try { return localStorage.getItem("autoScreen") || (localStorage.getItem("liveAuto") === "1" ? "live" : "mini"); } catch { return "mini"; }
 };
-function openAutoScreen() {
+// `from`: the screen point the minimal screen grows out of (the tapped tile)
+function openAutoScreen(from) {
   const p = autoScreenPref();
-  if (p === "mini") openMini(); else if (p === "live") openLive();
+  if (p === "mini") openMini(from); else if (p === "live") openLive();
 }
 const canWake = "wakeLock" in navigator;
 async function setWake(on) {
@@ -159,7 +160,7 @@ function renderLive() {
     renderLive();
   });
   $("#lvstop")?.addEventListener("click", stop);
-  $("#lvmini")?.addEventListener("click", () => { closeLive(); openMini(); });
+  $("#lvmini")?.addEventListener("click", (e) => { const p = pointOf(e.currentTarget); closeLive(); openMini(p); });
   $("#lvpause")?.addEventListener("click", openPause);
   $("#lvresume")?.addEventListener("click", resumeBreak);
   $("#lvend")?.addEventListener("click", async () => { try { await api("/pause/cancel", { method: "POST" }); await load(); } catch (e) { toast(e.message); } });
@@ -187,13 +188,48 @@ function renderMini() {
     <p class="mmsg ${m.tone}" id="minimsg">${esc(m.msg)}</p>
     <span class="mhint">Tap anywhere to go back</span></div>`;
 }
-function openMini() {
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+// the centre of an element, as a point the animation can start from
+const pointOf = (el) => { const r = el?.getBoundingClientRect?.(); return r && r.width ? [r.left + r.width / 2, r.top + r.height / 2] : null; };
+
+function openMini(from) {
   if (!liveActive()) return;
+  if (miniClosing) finishCloseMini(); // reopened mid-fade: start the entrance fresh
+  const wasOpen = miniDlg.open;
   renderMini();
-  if (!miniDlg.open) miniDlg.showModal();
+  if (!wasOpen) miniDlg.showModal();
   if (keepOnPref()) setWake(true);
+  if (!wasOpen) animateMiniIn(Array.isArray(from) ? from : pointOf(from));
 }
-function closeMini() { if (miniDlg.open) miniDlg.close(); }
+// A dark circle grows out of the tapped tile until it fills the screen, then the name, time and sentence
+// rise into place one after another.
+function animateMiniIn(point) {
+  if (reducedMotion()) { miniDlg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 }); return; }
+  const [x, y] = point || [innerWidth / 2, innerHeight / 2];
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  miniDlg.animate(
+    [{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${Math.ceil(r)}px at ${x}px ${y}px)` }],
+    { duration: 560, easing: "cubic-bezier(.65,0,.35,1)" }
+  );
+  miniDlg.querySelectorAll(".mname, .mclock, .mmsg").forEach((el, i) => el.animate(
+    [{ opacity: 0, transform: "translateY(16px) scale(.97)", filter: "blur(6px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }],
+    { duration: 650, delay: 260 + i * 110, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" }
+  ));
+}
+let miniClosing = null; // the running fade-out, if any
+function finishCloseMini() {
+  if (!miniClosing) return;
+  miniClosing = null;
+  miniDlg.close();
+  miniDlg.getAnimations({ subtree: true }).forEach((x) => x.cancel());
+}
+function closeMini() {
+  if (!miniDlg.open || miniClosing) return;
+  if (reducedMotion()) return miniDlg.close();
+  miniClosing = miniDlg.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(1.02)" }], { duration: 260, easing: "ease-in", fill: "forwards" });
+  miniClosing.onfinish = finishCloseMini;
+  setTimeout(finishCloseMini, 320); // animations don't run in a hidden page; close anyway
+}
 miniDlg.addEventListener("click", closeMini);
 miniDlg.addEventListener("close", () => { if (!liveDlg.open) setWake(false); });
 // every second: just the numbers and the sentence
