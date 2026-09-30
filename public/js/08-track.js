@@ -126,7 +126,11 @@ function masteryPace(ms) {
 }
 function masteryHTML(acts) {
   const list = acts.filter((a) => a.mastery);
-  if (!list.length) return "";
+  if (!list.length) {
+    // nothing marked yet: a visible way in, so the feature isn't hidden inside the activity editor
+    return acts.some((a) => a.kind !== "limit")
+      ? `<button class="linkbtn mstart" id="mstart">${icon("bolt", 14)}Track a skill toward 10,000 hours</button>` : "";
+  }
   return `<h2 class="section"><span>10,000 hours</span></h2><div class="card mastery">${list.map((a) => {
     const ms = masteryState(a);
     const pctTxt = (ms.pct * 100).toLocaleString(undefined, { maximumFractionDigits: ms.pct < 0.1 ? 2 : 1 });
@@ -137,6 +141,33 @@ function masteryHTML(acts) {
         ? `<span>next milestone ${ms.next.toLocaleString()} h · ${hoursToGo(ms.next * 3600 - ms.sec)} to go</span>` : ""}</div>
       <p class="mpace">${masteryPace(ms)}</p></div>`;
   }).join("")}</div>`;
+}
+
+// pick which activity counts toward 10,000 hours (and any hours practised before tracking)
+function openMasteryPick() {
+  const good = state.activities.filter((a) => a.kind !== "limit");
+  $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>10,000 hours</h3>
+    <form class="eform" id="mpickform">
+      <p class="hint" style="margin:0 4px">Mastery takes about 10,000 hours of practice. Pick a skill and Moonglare counts every hour toward it, with milestones and when you'll get there.</p>
+      <label>Hours already practised before Moonglare<input class="field num" type="number" name="base" min="0" max="9999" inputmode="numeric" placeholder="0"></label>
+      <div class="mpick">${good.map((a) => `<button type="button" class="pchoice" data-id="${a.id}" style="--c:${a.color}"><i></i>${esc(a.name)}</button>`).join("")}</div>
+      <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="mpcancel">Cancel</button></div>
+    </form>`;
+  const f = $("#mpickform");
+  $$(".pchoice", f).forEach((b) => b.onclick = async () => {
+    const base = Math.round(Number(f.base.value) || 0);
+    if (base < 0 || base > 9999) { toast("Earlier hours must be 0 to 9,999"); return f.base.focus(); }
+    try {
+      await api(`/activities/${b.dataset.id}`, { method: "PUT", body: { mastery: true, mastery_base_hours: base } });
+      editSheet.close();
+      await load();
+      toast(`${b.textContent.trim()} now counts toward 10,000 hours`);
+      $(".mastery")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (e) { toast(e.message); }
+  });
+  f.onsubmit = (ev) => ev.preventDefault();
+  $("#mpcancel").onclick = () => editSheet.close();
+  editSheet.showModal();
 }
 
 function renderTrack() {
@@ -186,6 +217,7 @@ function renderTrack() {
   bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => openActivity());
   $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id), pointOf(e.currentTarget)));
+  $("#mstart")?.addEventListener("click", openMasteryPick);
   $("#setgoals")?.addEventListener("click", () => openGoal(state.activities.find((a) => !a.goal_minutes) || state.activities[0]));
   $$(".tile").forEach((b) => {
     b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id), pointOf(b));
