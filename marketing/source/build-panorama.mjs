@@ -8,7 +8,7 @@ import puppeteer from "puppeteer-core";
 import { pathToFileURL } from "url";
 
 const ROOT = "C:/Users/peter/OneDrive/Desktop/Claude/Timetracker/timetrack";
-const M = `${ROOT}/marketing`, OUT = `${M}/instagram/panorama`;
+const M = `${ROOT}/marketing`, OUT = `${M}/instagram/banner-images`;
 fs.mkdirSync(OUT, { recursive: true });
 const img = (p) => pathToFileURL(p).href;
 const FONT_CSS = [400, 600, 700, 800].map((w) =>
