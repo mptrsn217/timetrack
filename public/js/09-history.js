@@ -16,6 +16,14 @@ try {
 } catch {}
 
 let dayLoadedAt = 0;
+// after deleting an activity or habit: drop every saved summary so History and Overview are fetched fresh
+function forgetSummaries() {
+  summary = { week: null, month: null };
+  entries = [];
+  searchResults = null;
+  dayLoadedAt = 0;
+  insightsData = null; insightsAt = 0;
+}
 async function loadHistoryData() {
   // the year of days for the heatmap changes slowly; refresh it at most every 5 minutes
   if (Date.now() - dayLoadedAt > 5 * 60e3) {

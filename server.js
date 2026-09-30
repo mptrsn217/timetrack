@@ -458,9 +458,23 @@ app.put("/api/activities/:id", h(async (req, res) => {
   res.json(row);
 }));
 
+// Deleting an activity deletes all its tracked time too, so History, charts and reviews forget it.
 app.delete("/api/activities/:id", h(async (req, res) => {
-  await q("UPDATE entries SET stopped_at=now() WHERE activity_id=$1 AND user_id=$2 AND stopped_at IS NULL", [req.params.id, req.uid]);
-  await q("UPDATE activities SET archived=TRUE WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: [act] } = await client.query("SELECT id FROM activities WHERE id=$1 AND user_id=$2", [req.params.id, req.uid]);
+    if (!act) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Not found" }); }
+    await client.query("DELETE FROM entries WHERE activity_id=$1", [act.id]);
+    await client.query("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_activity_id=$2", [req.uid, act.id]);
+    await client.query("DELETE FROM activities WHERE id=$1", [act.id]);
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
   res.json({ ok: true });
   pushLater(req.uid);
 }));

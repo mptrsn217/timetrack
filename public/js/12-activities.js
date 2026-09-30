@@ -87,8 +87,8 @@ function openActivity(a) {
   $("#actup")?.addEventListener("click", () => move(-1));
   $("#actdown")?.addEventListener("click", () => move(1));
   $("#actdel")?.addEventListener("click", async () => {
-    if (!confirm(`Delete "${a.name}"? Its tracked time stays in History.`)) return;
-    try { await api(`/activities/${a.id}`, { method: "DELETE" }); editSheet.close(); await load(); toast(`Deleted ${a.name}`); }
+    if (!confirm(`Delete "${a.name}" and all its tracked time? It disappears from History and every summary. This can't be undone.`)) return;
+    try { await api(`/activities/${a.id}`, { method: "DELETE" }); editSheet.close(); forgetSummaries(); await load(); toast(`Deleted ${a.name}`); }
     catch (e) { toast(e.message); }
   });
   f.onsubmit = async (ev) => {

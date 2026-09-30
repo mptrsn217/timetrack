@@ -355,8 +355,8 @@ function openHabit(h) {
     $("#hdown").onclick = () => move(1);
   }
   $("#hdel")?.addEventListener("click", async () => {
-    if (!confirm(`Delete "${h.name}" and every day you logged for it?`)) return;
-    try { await api(`/habits/${h.id}`, { method: "DELETE" }); editSheet.close(); await load(); } catch (e) { toast(e.message); }
+    if (!confirm(`Delete "${h.name}" and every day you logged for it? It disappears from every summary. This can't be undone.`)) return;
+    try { await api(`/habits/${h.id}`, { method: "DELETE" }); editSheet.close(); forgetSummaries(); await load(); toast(`Deleted ${h.name}`); } catch (e) { toast(e.message); }
   });
   f.onsubmit = async (ev) => {
     ev.preventDefault();
