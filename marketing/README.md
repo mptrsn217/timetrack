@@ -20,7 +20,7 @@ Tone: calm, friendly and encouraging, never preachy.
 | `colors/` | `palette.json`, `palette.css`, `palette.png` (swatches) |
 | `fonts/` | Inter (400, 600, 700, 800 + variable), free under the SIL Open Font License |
 | `screenshots/` | Phone screenshots (780×1688) of a demo account: track, idle, live, mini, habits, overview, overview2, mastery |
-| `instagram/` | 9 carousel posts and 3 fact posts (all 1080×1350) with `captions.md` |
+| `instagram/` | 9 carousel posts, 3 fact posts and the 3-post profile banner in `banner-images/` (all 1080×1350), with `captions.md` |
 | `source/` | The script that builds this folder |
 
 ## Logo

@@ -103,7 +103,7 @@ Source: Lally et al. (2010), "How are habits formed", European Journal of Social
 
 ---
 
-## Profile panorama (panorama/moonglare-panorama-1 to 3)
+## Profile banner (banner-images/moonglare-panorama-1 to 3)
 
 Three posts that form one wide image across a row of the profile grid. `moonglare-panorama-full.png` is the whole scene;
 `preview-profile-grid.jpg` shows how the row looks on the profile.
