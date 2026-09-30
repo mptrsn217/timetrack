@@ -76,6 +76,9 @@ await pool.query(`
   -- optional target (good) or limit (cut back), in minutes per day or per week
   ALTER TABLE activities ADD COLUMN IF NOT EXISTS goal_minutes INT;
   ALTER TABLE activities ADD COLUMN IF NOT EXISTS goal_period TEXT;
+  -- the 10,000-hour tracker: lifetime hours toward mastery, plus hours practised before using the app
+  ALTER TABLE activities ADD COLUMN IF NOT EXISTS mastery BOOLEAN NOT NULL DEFAULT FALSE;
+  ALTER TABLE activities ADD COLUMN IF NOT EXISTS mastery_base_hours INT NOT NULL DEFAULT 0;
   ALTER TABLE entries ADD COLUMN IF NOT EXISTS note TEXT;
   CREATE INDEX IF NOT EXISTS activities_user_idx ON activities(user_id);
   CREATE INDEX IF NOT EXISTS entries_user_started_idx ON entries(user_id, started_at);
@@ -257,8 +260,13 @@ app.get("/api/state", h(async (req, res) => {
   const [user] = await q("SELECT email, name, picture FROM users WHERE id=$1", [req.uid]);
   if (!user) return res.status(401).json({ error: "Please sign in" });
   const activities = await q(
-    `SELECT a.id, a.name, a.color, a.sort, a.kind, a.goal_minutes, a.goal_period,
-       (SELECT max(COALESCE(e.stopped_at, now())) FROM entries e WHERE e.activity_id=a.id AND e.user_id=$1) AS last_at
+    `SELECT a.id, a.name, a.color, a.sort, a.kind, a.goal_minutes, a.goal_period, a.mastery, a.mastery_base_hours,
+       (SELECT max(COALESCE(e.stopped_at, now())) FROM entries e WHERE e.activity_id=a.id AND e.user_id=$1) AS last_at,
+       -- finished sessions only (the client adds the running one): all time, and the last 30 days for the pace
+       CASE WHEN a.mastery THEN (SELECT COALESCE(SUM(EXTRACT(EPOCH FROM e.stopped_at - e.started_at)), 0)::bigint
+         FROM entries e WHERE e.activity_id=a.id AND e.user_id=$1 AND e.stopped_at IS NOT NULL) END AS mastery_sec,
+       CASE WHEN a.mastery THEN (SELECT COALESCE(SUM(EXTRACT(EPOCH FROM e.stopped_at - GREATEST(e.started_at, now() - interval '30 days'))), 0)::bigint
+         FROM entries e WHERE e.activity_id=a.id AND e.user_id=$1 AND e.stopped_at > now() - interval '30 days') END AS mastery_30d
      FROM activities a WHERE a.user_id=$1 AND NOT a.archived ORDER BY a.sort, a.id`,
     [req.uid]
   );
@@ -389,6 +397,21 @@ function parseGoal(body) {
   return { set: true, minutes: m, period: p };
 }
 
+// mastery: the 10,000-hour flag; mastery_base_hours: hours practised before tracking, 0 .. 9,999
+function parseMastery(body) {
+  const out = {};
+  if ("mastery" in body) {
+    if (typeof body.mastery !== "boolean") return { error: "Bad mastery" };
+    out.on = body.mastery;
+  }
+  if ("mastery_base_hours" in body) {
+    const b = body.mastery_base_hours;
+    if (!Number.isInteger(b) || b < 0 || b > 9999) return { error: "Earlier hours must be 0 to 9,999" };
+    out.base = b;
+  }
+  return out;
+}
+
 app.post("/api/activities", h(async (req, res) => {
   const name = cleanName(req.body.name);
   if (!name) return res.status(400).json({ error: "Name required" });
@@ -397,11 +420,14 @@ app.post("/api/activities", h(async (req, res) => {
   if (n >= MAX_ACTIVITIES) return res.status(400).json({ error: `Limit is ${MAX_ACTIVITIES} activities` });
   const goal = parseGoal(req.body);
   if (goal.error) return res.status(400).json({ error: goal.error });
+  const ms = parseMastery(req.body);
+  if (ms.error) return res.status(400).json({ error: ms.error });
+  const kind = req.body.kind === "limit" ? "limit" : "good";
   const [row] = await q(
-    `INSERT INTO activities(user_id,name,color,kind,goal_minutes,goal_period,sort)
-     VALUES($1,$2,$3,$4,$5,$6,(SELECT COALESCE(MAX(sort),0)+1 FROM activities WHERE user_id=$1))
-     RETURNING id,name,color,kind,goal_minutes,goal_period,sort`,
-    [req.uid, name, color, req.body.kind === "limit" ? "limit" : "good", goal.minutes ?? null, goal.period ?? null]
+    `INSERT INTO activities(user_id,name,color,kind,goal_minutes,goal_period,mastery,mastery_base_hours,sort)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,(SELECT COALESCE(MAX(sort),0)+1 FROM activities WHERE user_id=$1))
+     RETURNING id,name,color,kind,goal_minutes,goal_period,mastery,mastery_base_hours,sort`,
+    [req.uid, name, color, kind, goal.minutes ?? null, goal.period ?? null, kind === "good" && !!ms.on, ms.base ?? 0]
   );
   res.json(row);
 }));
@@ -414,13 +440,20 @@ app.put("/api/activities/:id", h(async (req, res) => {
   if (kind !== undefined && !["good", "limit"].includes(kind)) return res.status(400).json({ error: "Bad kind" });
   const goal = parseGoal(req.body);
   if (goal.error) return res.status(400).json({ error: goal.error });
+  const ms = parseMastery(req.body);
+  if (ms.error) return res.status(400).json({ error: ms.error });
   const [row] = await q(
     `UPDATE activities SET name=COALESCE($3,name), color=COALESCE($4,color), sort=COALESCE($5,sort), kind=COALESCE($6,kind),
        goal_minutes=CASE WHEN $7 THEN $8::int ELSE goal_minutes END,
-       goal_period=CASE WHEN $7 THEN $9::text ELSE goal_period END
+       goal_period=CASE WHEN $7 THEN $9::text ELSE goal_period END,
+       mastery_base_hours=COALESCE($10::int, mastery_base_hours)
      WHERE id=$1 AND user_id=$2 RETURNING id,name,color,kind,goal_minutes,goal_period,sort`,
-    [req.params.id, req.uid, cleanName(name), color, sort, kind, goal.set, goal.minutes ?? null, goal.period ?? null]
+    [req.params.id, req.uid, cleanName(name), color, sort, kind, goal.set, goal.minutes ?? null, goal.period ?? null, ms.base ?? null]
   );
+  if (row) {
+    // cut-back habits aren't skills to master
+    await q("UPDATE activities SET mastery=(kind='good' AND COALESCE($3::boolean, mastery)) WHERE id=$1 AND user_id=$2", [row.id, req.uid, ms.on ?? null]);
+  }
   if (!row) return res.status(404).json({ error: "Not found" });
   res.json(row);
 }));
@@ -1011,7 +1044,7 @@ app.post("/api/signout-all", h(async (req, res) => {
 
 app.get("/api/backup.json", h(async (req, res) => {
   const activities = await q(
-    "SELECT id, name, color, kind, sort, archived, goal_minutes, goal_period FROM activities WHERE user_id=$1 ORDER BY id",
+    "SELECT id, name, color, kind, sort, archived, goal_minutes, goal_period, mastery, mastery_base_hours FROM activities WHERE user_id=$1 ORDER BY id",
     [req.uid]
   );
   const entries = await q(
@@ -1054,11 +1087,13 @@ app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => 
       if (!id) {
         const goal = parseGoal({ goal_minutes: a.goal_minutes ?? null, goal_period: a.goal_period });
         const { rows: [row] } = await client.query(
-          `INSERT INTO activities(user_id,name,color,kind,sort,archived,goal_minutes,goal_period)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+          `INSERT INTO activities(user_id,name,color,kind,sort,archived,goal_minutes,goal_period,mastery,mastery_base_hours)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
           [req.uid, name, COLOR_RE.test(a.color) ? a.color : "#3987e5", a.kind === "limit" ? "limit" : "good",
             Number.isInteger(a.sort) ? a.sort : 0, a.archived === true,
-            goal.error ? null : goal.minutes ?? null, goal.error ? null : goal.period ?? null]
+            goal.error ? null : goal.minutes ?? null, goal.error ? null : goal.period ?? null,
+            a.mastery === true && a.kind !== "limit",
+            Number.isInteger(a.mastery_base_hours) && a.mastery_base_hours >= 0 && a.mastery_base_hours <= 9999 ? a.mastery_base_hours : 0]
         );
         id = row.id;
         byName.set(name.toLowerCase(), id);

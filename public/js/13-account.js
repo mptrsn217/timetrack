@@ -150,6 +150,7 @@ setInterval(() => {
     tb.classList.toggle("done", gs.done);
   }
   const sub = $(`[data-sub="${state.running.activity_id}"]`); if (sub) sub.textContent = v;
+  const mh = $(`[data-mh="${state.running.activity_id}"]`); if (mh && runAct?.mastery) mh.textContent = fmtHours(masteryState(runAct).sec);
 }, 1000);
 setInterval(() => signedIn && load({ background: true }), 30000);
 document.addEventListener("visibilitychange", () => !document.hidden && signedIn && load({ background: true }));

@@ -117,6 +117,19 @@
   .grow .gval.warn { color: var(--danger); font-weight: 600; }
   .grow .gtrack { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
   .grow .gtrack span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
+  /* 10,000 hours */
+  .mastery { padding: 4px 16px; }
+  .mrow { display: grid; gap: 6px; padding: 12px 0; }
+  .mrow + .mrow { border-top: 1px solid var(--line); }
+  .mhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+  .mhead .gname { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mhead .gname i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+  .mhead b { font-size: 18px; white-space: nowrap; }
+  .mhead b em { font-style: normal; font-size: 13px; color: var(--muted); font-weight: 600; }
+  .mtrack { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .mtrack span { display: block; height: 100%; min-width: 4px; border-radius: 99px; background: var(--c); }
+  .mfoot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+  .mpace { margin: 0; color: var(--muted); font-size: 13px; }
   .grow .gtrack.over span { background: var(--danger); }
   .setgoals { justify-self: start; }
   .hbtns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
@@ -328,7 +341,7 @@
 
 
   .goalrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
-  .goalrow[hidden] { display: none; }
+  .goalrow[hidden], #actform [hidden] { display: none; }
   .eform .seg { justify-self: start; margin: 0; }
 
   /* history extras */
@@ -472,6 +485,7 @@
   .lvcard { background: var(--surface); border-radius: 16px; padding: 10px 12px; display: grid; gap: 4px; box-shadow: var(--shadow); align-content: start; }
   .lvcard small { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
   .lvcard b { font-size: 20px; letter-spacing: -.01em; }
+  .lvcard.wide { grid-column: 1 / -1; }
   .lvcard b em { font-style: normal; font-size: 15px; color: var(--muted); font-weight: 600; }
   .lvcard > span { font-size: 13px; color: var(--muted); }
   .lvcard .delta { font-weight: 700; white-space: nowrap; }

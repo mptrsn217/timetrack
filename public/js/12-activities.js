@@ -43,7 +43,7 @@ async function moveInList(list, id, dir, path) {
 
 function openActivity(a) {
   const isNew = !a;
-  let color = a?.color || pickColor(), kind = a?.kind || "good";
+  let color = a?.color || pickColor(), kind = a?.kind || "good", mastery = !!a?.mastery;
   const acts = state.activities, idx = a ? acts.findIndex((x) => x.id === a.id) : -1;
   $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>${isNew ? "New activity" : "Edit activity"}</h3>
     <form class="eform" id="actform" autocomplete="off">
@@ -51,6 +51,9 @@ function openActivity(a) {
       <div class="swatches" role="radiogroup" aria-label="Color">${PALETTE.map((c) =>
         `<button type="button" class="sw" style="--c:${c}" data-c="${c}" aria-label="Color ${c}"></button>`).join("")}</div>
       <button type="button" class="chip" id="actkind"><span class="box" aria-hidden="true"></span>Habit to cut back</button>
+      <button type="button" class="chip" id="actmastery"><span class="box" aria-hidden="true"></span>10,000-hour mastery</button>
+      <label id="actbase">Hours already practised before Moonglare
+        <input class="field num" type="number" name="base" min="0" max="9999" inputmode="numeric" placeholder="0" value="${a?.mastery_base_hours || ""}"></label>
       ${isNew ? "" : `<div class="actmore">
         <button type="button" class="btn ghost" id="actgoal">${icon("flag", 16)}${goalLabel(a)}</button>
         <span class="movebtns">
@@ -66,9 +69,14 @@ function openActivity(a) {
   const sync = () => {
     $$(".sw", f).forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === color));
     $("#actkind").setAttribute("aria-pressed", kind === "limit");
+    // mastery is for skills you're building, not habits you're cutting back
+    $("#actmastery").hidden = kind === "limit";
+    $("#actmastery").setAttribute("aria-pressed", mastery);
+    $("#actbase").hidden = kind === "limit" || !mastery;
   };
   $$(".sw", f).forEach((b) => b.onclick = () => { color = b.dataset.c; sync(); });
-  $("#actkind").onclick = () => { kind = kind === "limit" ? "good" : "limit"; sync(); };
+  $("#actkind").onclick = () => { kind = kind === "limit" ? "good" : "limit"; if (kind === "limit") mastery = false; sync(); };
+  $("#actmastery").onclick = () => { mastery = !mastery; sync(); };
   sync();
   $("#actcancel").onclick = () => editSheet.close();
   $("#actgoal")?.addEventListener("click", () => openGoal(a));
@@ -87,8 +95,12 @@ function openActivity(a) {
     ev.preventDefault();
     const name = f.name.value.trim();
     if (!name) return f.name.focus();
+    const base = Math.round(Number(f.base.value) || 0);
+    if (mastery && (base < 0 || base > 9999)) { toast("Earlier hours must be 0 to 9,999"); return f.base.focus(); }
     try {
-      await api(isNew ? "/activities" : `/activities/${a.id}`, { method: isNew ? "POST" : "PUT", body: { name, color, kind } });
+      const body = { name, color, kind, mastery };
+      if (mastery) body.mastery_base_hours = base;
+      await api(isNew ? "/activities" : `/activities/${a.id}`, { method: isNew ? "POST" : "PUT", body });
       newColor = null;
       editSheet.close();
       await load();

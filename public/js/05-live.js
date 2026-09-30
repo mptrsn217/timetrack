@@ -109,6 +109,11 @@ function liveBody() {
     cards.push(`<div class="lvcard"><small>${m.limit ? "Days under limit" : "Streak"}</small>
       <b class="num">${sk?.current || 0} ${sk?.current === 1 ? "day" : "days"}</b>
       <span>${sk?.best > (sk?.current || 0) ? `best ${sk.best} days` : sk?.current ? "your best yet" : "start one today"}</span></div>`);
+    if (a.mastery) {
+      const ms = masteryState(a);
+      cards.push(`<div class="lvcard wide"><small>10,000 hours</small><b class="num">${fmtHours(ms.sec)} <em>/ 10,000 h</em></b>
+        <i class="lvbar"><i style="width:${ms.pct * 100}%"></i></i><span>${esc(masteryPace(ms))}</span></div>`);
+    }
   }
   // how it ranks among the other activities of the same kind today
   let rank = "";

@@ -97,6 +97,48 @@ function streakLine(a) {
   return `<div class="streakl num">${icon("bolt", 12)}${what}${sk.best > sk.current ? ` · best ${sk.best}` : ""}</div>`;
 }
 
+/* ---------- 10,000 hours ---------- */
+const MASTERY_SEC = 10000 * 3600;
+const MILESTONES = [1, 10, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000];
+const fmtHours = (sec) => (sec / 3600).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const hoursToGo = (sec) => (sec < 3600 ? fmtShort(sec) : `${Math.ceil(sec / 3600).toLocaleString()} h`);
+function fmtSpan(days) {
+  if (days < 1) return "less than a day";
+  if (days < 60) return `${Math.round(days)} days`;
+  if (days < 730) return `${Math.round(days / 30.4)} months`;
+  return `${(days / 365).toFixed(1)} years`;
+}
+// lifetime hours (earlier practice + finished sessions + the one running now) and the 30-day pace
+function masteryState(a) {
+  const live = state.running?.activity_id === a.id ? runSec() : 0;
+  const sec = (a.mastery_base_hours || 0) * 3600 + Number(a.mastery_sec || 0) + live;
+  const perDay = (Number(a.mastery_30d || 0) + live) / 30;
+  const h = sec / 3600, next = MILESTONES.find((m) => m > h);
+  return { sec, perDay, pct: Math.min(1, sec / MASTERY_SEC), next, done: sec >= MASTERY_SEC };
+}
+function masteryPace(ms) {
+  if (ms.done) return "You've reached 10,000 hours. Mastery!";
+  if (ms.perDay < 60) return "Track a few sessions to see when you'll get there";
+  const days = (MASTERY_SEC - ms.sec) / ms.perDay;
+  if (days > 36500) return `At ${fmtShort(ms.perDay)} a day (last 30 days) it would take over a century. More practice brings it closer`;
+  const year = new Date(now() + days * 864e5).getFullYear();
+  return `At ${fmtShort(ms.perDay)} a day (last 30 days): 10,000 h in about ${fmtSpan(days)}, around ${year}`;
+}
+function masteryHTML(acts) {
+  const list = acts.filter((a) => a.mastery);
+  if (!list.length) return "";
+  return `<h2 class="section"><span>10,000 hours</span></h2><div class="card mastery">${list.map((a) => {
+    const ms = masteryState(a);
+    const pctTxt = (ms.pct * 100).toLocaleString(undefined, { maximumFractionDigits: ms.pct < 0.1 ? 2 : 1 });
+    return `<div class="mrow" style="--c:${a.color}">
+      <div class="mhead"><span class="gname"><i></i>${esc(a.name)}</span><b class="num"><span data-mh="${a.id}">${fmtHours(ms.sec)}</span> <em>/ 10,000 h</em></b></div>
+      <span class="mtrack"><span style="width:${ms.pct * 100}%"></span></span>
+      <div class="mfoot num"><span>${pctTxt}% there</span>${ms.next && !ms.done
+        ? `<span>next milestone ${ms.next.toLocaleString()} h · ${hoursToGo(ms.next * 3600 - ms.sec)} to go</span>` : ""}</div>
+      <p class="mpace">${masteryPace(ms)}</p></div>`;
+  }).join("")}</div>`;
+}
+
 function renderTrack() {
   const r = state.running;
   const acts = state.activities;
@@ -122,13 +164,13 @@ function renderTrack() {
          const on = r && r.activity_id === a.id;
          return `<button class="tile ${on ? "on" : ""}" data-id="${a.id}" style="--c:${a.color}" aria-pressed="${!!on}">
            <span class="play">${icon(on ? "stop" : "play", 14)}</span>
-           <span class="top-l"><span class="dot"></span>${a.kind === "limit" ? `<span class="kindtag">Cut back</span>` : ""}</span>
+           <span class="top-l"><span class="dot"></span>${a.kind === "limit" ? `<span class="kindtag">Cut back</span>` : a.mastery ? `<span class="kindtag">10k h</span>` : ""}</span>
            <span><div class="nm">${esc(a.name)}</div>
            <div class="sub num${goalState(a)?.over ? " warn" : ""}" data-sub="${a.id}">${on ? fmt(runSec()) : tileSub(a)}</div>
            ${streakLine(a)}</span>
            ${tileBar(a)}
          </button>`;
-       }).join("")}</div><p class="hint holdhint">Tap to start or stop · press and hold to edit</p>`
+       }).join("")}</div><p class="hint holdhint">Tap to start or stop · press and hold to edit</p>${masteryHTML(acts)}`
     : starterHTML();
 
   app.innerHTML = (acts.length || r ? hero : "") + list;
