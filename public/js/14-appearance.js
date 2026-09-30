@@ -6,7 +6,7 @@ function applyTheme(pref) {
   else delete document.documentElement.dataset.theme;
   try { pref === "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", pref); } catch {}
   // the browser bar colour follows the chosen theme too
-  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", isDark() ? "#131519" : "#f6f5f1"));
+  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", isDark() ? "#0d1620" : "#f3f7fb"));
   $$("[data-theme-opt]").forEach((b) => b.setAttribute("aria-checked", b.dataset.themeOpt === pref));
   $$("[data-theme-opt]").forEach((b) => b.setAttribute("aria-selected", b.dataset.themeOpt === pref));
 }

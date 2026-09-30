@@ -1,24 +1,24 @@
   :root {
-    --bg: #f6f5f1; --surface: #ffffff; --surface-2: #efeee9; --line: #e4e2dc;
-    --ink: #1a1c21; --muted: #6c707a; --faint: #a3a6ad;
-    --accent: #d8920f; --accent-ink: #1a1405; --danger: #d0453f; --good: #1f9d55;
+    --bg: #f3f7fb; --surface: #ffffff; --surface-2: #e9f0f7; --line: #dce6ef;
+    --ink: #142230; --muted: #64748a; --faint: #9fadbc;
+    --accent: #1f8fd6; --accent-ink: #ffffff; --danger: #d0453f; --good: #1f9d55;
     --shadow: 0 1px 2px rgba(20, 20, 30, .05), 0 4px 16px rgba(20, 20, 30, .05);
     --radius: 18px;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #131519; --surface: #1c1f25; --surface-2: #252932; --line: #2c3039;
-      --ink: #eef0f3; --muted: #8e94a0; --faint: #5d626d;
-      --accent: #f2b33d; --accent-ink: #1a1405; --danger: #ef6a63; --good: #4cc38a;
+      --bg: #0d1620; --surface: #15212e; --surface-2: #1c2b3b; --line: #243445;
+      --ink: #e8f1f8; --muted: #8fa3b6; --faint: #586c80;
+      --accent: #5cbfef; --accent-ink: #05202f; --danger: #ef6a63; --good: #4cc38a;
       --shadow: none;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-      --bg: #131519; --surface: #1c1f25; --surface-2: #252932; --line: #2c3039;
-      --ink: #eef0f3; --muted: #8e94a0; --faint: #5d626d;
-      --accent: #f2b33d; --accent-ink: #1a1405; --danger: #ef6a63; --good: #4cc38a;
+      --bg: #0d1620; --surface: #15212e; --surface-2: #1c2b3b; --line: #243445;
+      --ink: #e8f1f8; --muted: #8fa3b6; --faint: #586c80;
+      --accent: #5cbfef; --accent-ink: #05202f; --danger: #ef6a63; --good: #4cc38a;
       --shadow: none;
       color-scheme: dark;
   }
@@ -643,18 +643,18 @@ dialog.minidlg::backdrop { background: transparent; }
 /* ---------- startup intro: the Moonglare logo animation, minimal ----------
    water and horizon 0–0.9s · moon rises 0.6–2.4s · glow 2.2–3.2s · landscape away, moon settles 3.0–4.2s · fade 4.3–4.8s */
 .nointro #intro { display: none; }
-#intro { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #0b0712;
-  --pale: #fbe9cc; --amber: #f2b35e; --hz: 62vh; --moon: min(20vmin, 120px);
+#intro { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #081420;
+  --pale: #e3f4fd; --amber: #5cbfef; --hz: 62vh; --moon: min(20vmin, 120px);
   animation: i-out .5s ease 4.3s forwards; }
 @keyframes i-out { to { opacity: 0; visibility: hidden; } }
 @keyframes i-in { to { opacity: 1; } }
 @keyframes i-away { to { opacity: 0; } }
 
 /* still water (it sits in front of the moon, so the moon rises from behind the horizon) and one thin horizon line */
-.i-water { position: absolute; left: 0; right: 0; top: var(--hz); bottom: 0; z-index: 2; background: #07040c; opacity: 0;
+.i-water { position: absolute; left: 0; right: 0; top: var(--hz); bottom: 0; z-index: 2; background: #050d16; opacity: 0;
   animation: i-in .9s ease forwards, i-away .9s ease 3s forwards; }
 .i-horizon { position: absolute; left: 12%; right: 12%; top: var(--hz); height: 1px; z-index: 3; opacity: 0;
-  background: linear-gradient(90deg, transparent, rgba(251,233,204,.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(227,244,253,.35), transparent);
   animation: i-in .9s ease .2s forwards, i-away .8s ease 3s forwards; }
 
 .i-moon { position: absolute; left: 50%; top: calc(var(--hz) + var(--moon)); width: var(--moon); height: var(--moon); z-index: 1;
@@ -665,7 +665,7 @@ dialog.minidlg::backdrop { background: transparent; }
 
 /* a few faint reflection lines under the moon */
 .i-refl { position: absolute; left: 50%; top: 6px; width: calc(var(--moon) * .9); height: 22vh; margin-left: calc(var(--moon) * -.45);
-  background: repeating-linear-gradient(to bottom, rgba(251,233,204,.5) 0 1px, transparent 1px 12px);
+  background: repeating-linear-gradient(to bottom, rgba(227,244,253,.5) 0 1px, transparent 1px 12px);
   -webkit-mask-image: linear-gradient(to bottom, #000, transparent); mask-image: linear-gradient(to bottom, #000, transparent);
   transform: scaleX(.1); opacity: 0; animation: i-spread 1.4s ease-out 1.4s forwards; }
 @keyframes i-spread { to { transform: scaleX(1); opacity: .7; } }
@@ -673,7 +673,7 @@ dialog.minidlg::backdrop { background: transparent; }
 /* one soft glow, which stays with the moon as it settles */
 .i-glow { position: absolute; left: 50%; top: 40vh; width: calc(var(--moon) * 3.2); height: calc(var(--moon) * 3.2); z-index: 0;
   margin: calc(var(--moon) * -1.6) 0 0 calc(var(--moon) * -1.6); border-radius: 50%; opacity: 0;
-  background: radial-gradient(circle, rgba(242,179,94,.32), rgba(242,179,94,.08) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(92,191,239,.34), rgba(92,191,239,.09) 45%, transparent 70%);
   animation: i-glow 1s ease-out 2.2s forwards, i-settle 1.2s cubic-bezier(.4,0,.2,1) 3s forwards; }
 @keyframes i-glow { to { opacity: 1; } }
 
