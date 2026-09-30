@@ -265,7 +265,7 @@
   .lfshots .phone + .phone { display: none; } /* one phone per row on small screens */
 
   .lend { display: grid; justify-items: center; gap: 16px; text-align: center; padding: 28px 0 12px; }
-  .lend .quote { margin: 0; max-width: 620px; font-size: clamp(20px, 3vw, 26px); line-height: 1.35; letter-spacing: -.01em; font-weight: 600; }
+  .lend .closing { margin: 0; max-width: 620px; font-size: clamp(20px, 3vw, 26px); line-height: 1.35; letter-spacing: -.01em; font-weight: 600; }
 
   @media (min-width: 800px) {
     .landing { gap: 110px; }

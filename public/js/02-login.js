@@ -49,7 +49,7 @@ async function renderLogin() {
       phone("mastery", "Progress toward 10,000 hours"))}
 
     <section class="lend">
-      <p class="quote">"I hope Moonglare helps you understand where your time goes, and what to do with it."</p>
+      <p class="closing">See where your time goes. Then decide what to do with it.</p>
       <div id="gbtn2" class="gbtn"><div class="gbtn-in"></div></div>
       ${canInstall() ? `<button class="linkbtn" id="howinstall">${icon("home", 16)}Add Moonglare to your Home Screen</button>` : ""}
       <p class="fine">Free. Your data is private to your account. <a href="/privacy.html">Privacy</a></p>
