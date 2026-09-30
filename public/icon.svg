@@ -1,21 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Moonglare: a flat, graphic moon over water. Full-bleed so it also works as a maskable icon. -->
+  <!-- Moonglare: the moon over still water, as in the startup animation, in flat dark yellow and orange.
+       Full-bleed so it also works as a maskable icon. -->
   <defs>
-    <clipPath id="sky"><rect width="512" height="326"/></clipPath>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d0709"/>
+      <stop offset=".63" stop-color="#26120c"/>
+    </linearGradient>
+    <radialGradient id="glare" cx="256" cy="222" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset=".36" stop-color="#e2711a" stop-opacity=".75"/>
+      <stop offset=".6" stop-color="#c2410c" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#c2410c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="horizon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e2711a" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#e8a317"/>
+      <stop offset="1" stop-color="#e2711a" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#160b07"/>
-  <!-- the glare: hard-edged rings stepping from deep orange out to the dark -->
-  <g clip-path="url(#sky)">
-    <circle cx="256" cy="224" r="214" fill="#2e1409"/>
-    <circle cx="256" cy="224" r="170" fill="#5a220b"/>
-    <circle cx="256" cy="224" r="130" fill="#a8400e"/>
-    <circle cx="256" cy="224" r="94" fill="#e8a317"/>
-  </g>
-  <!-- the reflection: bold bars, yellow then orange, narrowing with depth -->
-  <g>
-    <rect x="162" y="344" width="188" height="16" rx="8" fill="#e8a317"/>
-    <rect x="186" y="372" width="140" height="16" rx="8" fill="#d9660f"/>
-    <rect x="210" y="400" width="92" height="16" rx="8" fill="#a8400e"/>
-    <rect x="232" y="428" width="48" height="16" rx="8" fill="#5a220b"/>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <!-- the glare around the moon, with one crisp ring -->
+  <circle cx="256" cy="222" r="200" fill="url(#glare)"/>
+  <circle cx="256" cy="222" r="90" fill="none" stroke="#e2711a" stroke-width="4" stroke-opacity=".7"/>
+  <circle cx="256" cy="222" r="74" fill="#e8a317"/>
+  <!-- still water and the horizon -->
+  <rect y="322" width="512" height="190" fill="#0d0709"/>
+  <rect x="72" y="320" width="368" height="4" fill="url(#horizon)"/>
+  <!-- the reflection: glints that narrow and shift from yellow to orange with depth -->
+  <g stroke-linecap="round" stroke-width="8">
+    <line x1="192" y1="348" x2="320" y2="348" stroke="#e8a317"/>
+    <line x1="206" y1="370" x2="306" y2="370" stroke="#e2861a"/>
+    <line x1="220" y1="392" x2="292" y2="392" stroke="#e2711a"/>
+    <line x1="232" y1="414" x2="280" y2="414" stroke="#c2410c"/>
+    <line x1="243" y1="436" x2="269" y2="436" stroke="#8a2f0c"/>
   </g>
 </svg>
