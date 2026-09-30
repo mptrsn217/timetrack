@@ -14,6 +14,18 @@
 <link rel="stylesheet" href="/app.css">
 </head>
 <body class="out">
+<!-- Startup intro (Moonglare logo animation): dusk water, the moon rises, an amber glare, the moon settles as the mark.
+     Pure CSS; js/00-intro.js removes it when it ends or on a tap. -->
+<div id="intro" role="img" aria-label="Moonglare">
+  <div class="i-sky"></div>
+  <div class="i-glare"></div>
+  <div class="i-streak"></div>
+  <div class="i-moon"></div>
+  <div class="i-water"><div class="i-refl"></div></div>
+  <div class="i-horizon"></div>
+  <div class="i-word">Moonglare</div>
+  <div class="i-skip">Tap to skip</div>
+</div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
@@ -100,6 +112,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://accounts.google.com/gsi/client" async></script>
 
+<script src="/js/00-intro.js"></script>
 <script src="/js/01-core.js"></script>
 <script src="/js/02-login.js"></script>
 <script src="/js/03-track-status.js"></script>
