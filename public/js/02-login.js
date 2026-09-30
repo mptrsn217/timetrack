@@ -10,7 +10,7 @@ async function renderLogin() {
   app.innerHTML = `<div class="landing">
     <section class="lhero">
       <div class="lhtext">
-        <img class="mark" src="/icon.svg" alt="" width="88" height="88">
+        <img class="logo" src="/logo.svg" alt="" width="316" height="340">
         <h1>Moonglare</h1>
         <p class="lead">See where your time really goes. Then do more of what matters, and less of what doesn't.</p>
         <div id="gbtn" class="gbtn"></div>

@@ -39,7 +39,7 @@
     padding: calc(env(safe-area-inset-top) + 10px) 16px 10px; }
   .top-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
-  .brand .mark { width: 28px; height: 28px; border-radius: 8px; display: block; box-shadow: 0 0 0 1px var(--line); }
+  .brand .mark { width: 26px; height: 28px; display: block; }
   .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); overflow: hidden;
     display: grid; place-items: center; font-weight: 700; color: var(--muted); }
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -226,11 +226,13 @@
 
   /* login */
   /* landing page (signed out) */
-  body.out main { max-width: 1040px; }
+  body.out main { max-width: 1040px; padding-top: calc(24px + env(safe-area-inset-top)); }
   body.out .top-in { max-width: 1040px; }
   .landing { display: grid; gap: 72px; padding: 12px 0 24px; }
   .landing h1 { margin: 10px 0 0; font-size: clamp(36px, 7vw, 52px); letter-spacing: -.03em; line-height: 1.05; }
-  .landing .mark { width: 88px; height: 88px; border-radius: 22px; display: block; box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(31,143,214,.18); }
+  /* one large, free-standing logo; the header (with its small logo) is hidden while signed out */
+  body.out header.top { display: none; }
+  .landing .logo { width: clamp(170px, 42vw, 240px); height: auto; display: block; }
   .landing .lead { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); margin: 12px 0 22px; max-width: 460px; line-height: 1.45; }
   .landing .fine { font-size: 13px; color: var(--faint); margin: 12px 0 0; }
   .landing .fine a { color: inherit; }
