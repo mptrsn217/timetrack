@@ -1,36 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Moonglare: the moon over still water, as in the startup animation, in flat dark yellow and orange.
+  <!-- Moonglare: the moon over still water, as in the startup animation, in blue-violet on white.
        Full-bleed so it also works as a maskable icon. -->
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0d0709"/>
-      <stop offset=".63" stop-color="#26120c"/>
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".63" stop-color="#ecebff"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f3ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
     </linearGradient>
     <radialGradient id="glare" cx="256" cy="222" r="200" gradientUnits="userSpaceOnUse">
-      <stop offset=".36" stop-color="#e2711a" stop-opacity=".75"/>
-      <stop offset=".6" stop-color="#c2410c" stop-opacity=".25"/>
-      <stop offset="1" stop-color="#c2410c" stop-opacity="0"/>
+      <stop offset=".34" stop-color="#7468ec" stop-opacity=".38"/>
+      <stop offset=".62" stop-color="#8d84f2" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#8d84f2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="moon" cx=".38" cy=".34" r=".75">
+      <stop offset="0" stop-color="#7d73f0"/>
+      <stop offset="1" stop-color="#4a3fc4"/>
     </radialGradient>
     <linearGradient id="horizon" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#e2711a" stop-opacity="0"/>
-      <stop offset=".5" stop-color="#e8a317"/>
-      <stop offset="1" stop-color="#e2711a" stop-opacity="0"/>
+      <stop offset="0" stop-color="#5b50d8" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#5b50d8"/>
+      <stop offset="1" stop-color="#5b50d8" stop-opacity="0"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" fill="url(#sky)"/>
   <!-- the glare around the moon, with one crisp ring -->
   <circle cx="256" cy="222" r="200" fill="url(#glare)"/>
-  <circle cx="256" cy="222" r="90" fill="none" stroke="#e2711a" stroke-width="4" stroke-opacity=".7"/>
-  <circle cx="256" cy="222" r="74" fill="#e8a317"/>
+  <circle cx="256" cy="222" r="90" fill="none" stroke="#6a5fe4" stroke-width="4" stroke-opacity=".45"/>
+  <circle cx="256" cy="222" r="74" fill="url(#moon)"/>
   <!-- still water and the horizon -->
-  <rect y="322" width="512" height="190" fill="#0d0709"/>
-  <rect x="72" y="320" width="368" height="4" fill="url(#horizon)"/>
-  <!-- the reflection: glints that narrow and shift from yellow to orange with depth -->
-  <g stroke-linecap="round" stroke-width="8">
-    <line x1="192" y1="348" x2="320" y2="348" stroke="#e8a317"/>
-    <line x1="206" y1="370" x2="306" y2="370" stroke="#e2861a"/>
-    <line x1="220" y1="392" x2="292" y2="392" stroke="#e2711a"/>
-    <line x1="232" y1="414" x2="280" y2="414" stroke="#c2410c"/>
-    <line x1="243" y1="436" x2="269" y2="436" stroke="#8a2f0c"/>
+  <rect y="322" width="512" height="190" fill="url(#water)"/>
+  <rect x="72" y="320" width="368" height="3" fill="url(#horizon)"/>
+  <!-- the reflection: broken, uneven glints inside a rounded column that fades with depth -->
+  <g stroke="#5b50d8" stroke-linecap="round">
+    <g stroke-width="8.0" stroke-opacity="1.00"><line x1="186.0" y1="338.0" x2="300.4" y2="338.0"/><line x1="312.4" y1="338.0" x2="323.2" y2="338.0"/></g>
+    <g stroke-width="7.5" stroke-opacity="0.91"><line x1="193.3" y1="350.5" x2="236.2" y2="350.5"/><line x1="248.2" y1="350.5" x2="328.9" y2="350.5"/></g>
+    <g stroke-width="7.1" stroke-opacity="0.82"><line x1="182.5" y1="363.0" x2="273.8" y2="363.0"/><line x1="285.8" y1="363.0" x2="315.9" y2="363.0"/></g>
+    <g stroke-width="6.7" stroke-opacity="0.72"><line x1="195.3" y1="375.5" x2="211.2" y2="375.5"/><line x1="223.2" y1="375.5" x2="296.1" y2="375.5"/><line x1="308.1" y1="375.5" x2="329.5" y2="375.5"/></g>
+    <g stroke-width="6.2" stroke-opacity="0.63"><line x1="187.3" y1="388.0" x2="254.7" y2="388.0"/><line x1="266.7" y1="388.0" x2="312.7" y2="388.0"/></g>
+    <g stroke-width="5.8" stroke-opacity="0.54"><line x1="202.5" y1="400.5" x2="228.4" y2="400.5"/><line x1="240.4" y1="400.5" x2="323.9" y2="400.5"/></g>
+    <g stroke-width="5.3" stroke-opacity="0.45"><line x1="191.4" y1="413.0" x2="261.7" y2="413.0"/><line x1="273.7" y1="413.0" x2="307.0" y2="413.0"/></g>
+    <g stroke-width="4.8" stroke-opacity="0.36"><line x1="209.0" y1="425.5" x2="302.7" y2="425.5"/></g>
+    <g stroke-width="4.4" stroke-opacity="0.26"><line x1="209.5" y1="438.0" x2="247.0" y2="438.0"/><line x1="259.0" y1="438.0" x2="296.5" y2="438.0"/></g>
+    <g stroke-width="4.0" stroke-opacity="0.17"><line x1="237.9" y1="450.5" x2="285.4" y2="450.5"/></g>
   </g>
 </svg>
