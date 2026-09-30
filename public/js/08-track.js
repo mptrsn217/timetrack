@@ -85,7 +85,7 @@ function idleHero(acts) {
     : `<button class="linkbtn setgoals" id="setgoals">${icon("flag", 14)}Set daily or weekly goals</button>`;
 
   return `<section class="hero idle"><div class="label">Nothing running</div>${resume}${goals}
-    <button class="linkbtn" id="startfocus">${icon("target", 14)}Start a focus session</button></section>`;
+</section>`;
 }
 
 // "5-day streak · best 12"; for cut-back habits with a daily limit, days stayed under it
@@ -102,15 +102,14 @@ function renderTrack() {
   const acts = state.activities;
   const runAct = r && acts.find((a) => a.id === r.activity_id);
 
-  const hero = state.focus ? focusHero(state.focus) : r
+  const hero = r
     ? `<section class="hero on" style="--c:${runAct?.color || "var(--accent)"}">
         <button class="lvopen" data-live aria-label="Open live screen">${icon("expand", 18)}</button>
         <div><div class="label"><span class="pulse"></span>Tracking now</div>
         <div class="name">${esc(r.name)}</div></div>
         <div class="row">
-          <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)}</div></div>
-          <span class="hbtns"><button class="btn-pause" id="focusbtn" aria-label="Focus mode">${icon("target", 18)}</button>
-          <button class="btn-pause" id="pausebtn" aria-label="Take a break">${icon("pause", 18)}</button>
+          <div><div class="clock num" id="clock">${fmt(runSec())}</div><div class="since">Started ${clock(r.started_at)} · tap the time for a minimal screen</div></div>
+          <span class="hbtns"><button class="btn-pause" id="pausebtn" aria-label="Take a break">${icon("pause", 18)}</button>
           <button class="btn-stop" id="stopbtn">${icon("stop", 16)}Stop</button></span>
         </div>
         <div class="goal" id="goal">${goalHTML()}</div>
@@ -132,16 +131,12 @@ function renderTrack() {
        }).join("")}</div><p class="hint holdhint">Tap to start or stop · press and hold to edit</p>`
     : starterHTML();
 
-  app.innerHTML = (acts.length || state.focus || r ? hero : "") + list;
+  app.innerHTML = (acts.length || r ? hero : "") + list;
   if (r) $("#stopbtn").onclick = stop;
   $("#pausebtn")?.addEventListener("click", openPause);
-  $("#focusbtn")?.addEventListener("click", () => openFocus());
-  $("#startfocus")?.addEventListener("click", () => openFocus());
-  bindFocusHero();
   bindStarter();
   $$("[data-live]").forEach((b) => b.onclick = openLive);
-  $("#clock")?.addEventListener("click", openLive);
-  $("#focusclock")?.addEventListener("click", openLive);
+  $("#clock")?.addEventListener("click", openMini); // the big timer opens the minimal screen
   $("#resumenow")?.addEventListener("click", resumeBreak);
   $("#endbreak")?.addEventListener("click", async () => {
     try { await api("/pause/cancel", { method: "POST" }); await load(); toast("Session ended"); } catch (e) { toast(e.message); }
@@ -162,17 +157,17 @@ async function start(id) {
     const out = await api("/start", { method: "POST", body: { activity_id: id } });
     if (out.queued) { // offline: show it running now; the server gets it later with this start time
       const a = state.activities.find((x) => x.id === id);
-      state = { ...state, running: { id: -1, activity_id: id, name: a?.name, started_at: new Date(now()).toISOString() }, stats: null, focus: null, pause: null };
+      state = { ...state, running: { id: -1, activity_id: id, name: a?.name, started_at: new Date(now()).toISOString() }, stats: null, pause: null };
       render();
     } else await load();
     notify();
-    if (autoLivePref()) openLive();
+    openAutoScreen();
   } catch (e) { toast(e.message); }
 }
 async function stop() {
   try {
     const out = await api("/stop", { method: "POST" });
-    if (out.queued) { state = { ...state, running: null, focus: null, pause: null }; render(); if (liveDlg.open) closeLive(); }
+    if (out.queued) { state = { ...state, running: null, pause: null }; render(); closeLive(); closeMini(); }
     else await load();
     notify();
   } catch (e) { toast(e.message); }

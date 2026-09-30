@@ -374,13 +374,6 @@
   #doinstall { justify-self: start; }
   .ibenefit { margin: 0 4px; font-size: 15px; line-height: 1.45; }
 
-  /* focus */
-  .hero.focus .rounds { display: flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 12px; color: var(--muted); }
-  .hero.focus .rounds i { width: 22px; height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--c) 25%, transparent); }
-  .hero.focus .rounds i.done { background: var(--c); }
-  .hero.focus .rounds i.now { background: linear-gradient(90deg, var(--c) 50%, color-mix(in srgb, var(--c) 25%, transparent) 50%); }
-  .hero.focus .rounds span { margin-left: 6px; }
-  #startfocus { margin-top: 2px; }
   .goalrow.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   /* starter */
@@ -616,3 +609,20 @@
 .clg i.lu { height: 8px; width: 8px; background: color-mix(in srgb, var(--c) 45%, var(--surface-2)); }
 .clg i.lt { background: none; border-top: 2px dashed var(--ink); opacity: .55; height: 0; }
 .hcheck .hrow:first-child { border-top: 0; }
+
+/* minimal screen: nearly black and dim, only the timer and one sentence */
+dialog.minidlg { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; box-shadow: none;
+  background: #000; color: #8b9099; overflow: hidden; }
+dialog.minidlg::backdrop { background: #000; }
+.mini { height: 100%; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center;
+  padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px); cursor: pointer; user-select: none; -webkit-user-select: none; }
+.mname { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #6f747d; }
+.mname i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); opacity: .7; }
+.mclock { font-size: clamp(64px, 22vw, 150px); font-weight: 250; letter-spacing: -.03em; line-height: 1; color: #c9ccd2; }
+.mmsg { margin: 0; max-width: 420px; font-size: 17px; line-height: 1.4; color: #7d828b; }
+.mmsg.good { color: color-mix(in srgb, var(--good) 70%, #000); }
+.mmsg.bad { color: color-mix(in srgb, var(--danger) 75%, #000); }
+.mhint { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 18px); font-size: 12px; color: #3d4148;
+  animation: mhint 4s ease forwards; }
+@keyframes mhint { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .mhint { animation: none; } }

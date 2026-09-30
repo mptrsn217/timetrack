@@ -84,14 +84,9 @@ await pool.query(`
   -- a break: which activity to resume, and when
   ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_activity_id INT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS pause_until TIMESTAMPTZ;
-  -- focus mode (Pomodoro): current phase ('work' | 'break'), when it ends, which round of how many
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_activity_id INT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_phase TEXT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_ends TIMESTAMPTZ;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_round INT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_rounds INT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_work INT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_break INT;
+  -- focus mode was removed; drop its columns if an older version added them
+  ALTER TABLE users DROP COLUMN IF EXISTS focus_activity_id, DROP COLUMN IF EXISTS focus_phase, DROP COLUMN IF EXISTS focus_ends,
+    DROP COLUMN IF EXISTS focus_round, DROP COLUMN IF EXISTS focus_rounds, DROP COLUMN IF EXISTS focus_work, DROP COLUMN IF EXISTS focus_break;
   -- yes/no daily habits ("Workout?", "Ate sugar?"); kind 'do' = yes is good, 'avoid' = no is good
   CREATE TABLE IF NOT EXISTS habits (
     id SERIAL PRIMARY KEY,
@@ -284,12 +279,6 @@ app.get("/api/state", h(async (req, res) => {
     [tz, req.uid]
   );
   const stats = running ? await sessionStats(req.uid, running.activity_id, running.id, tz) : null;
-  const [focus] = await q(
-    `SELECT u.focus_activity_id AS activity_id, u.focus_phase AS phase, u.focus_ends AS ends, u.focus_round AS round,
-       u.focus_rounds AS rounds, u.focus_work AS work, u.focus_break AS brk, a.name, a.color
-     FROM users u JOIN activities a ON a.id=u.focus_activity_id WHERE u.id=$1 AND u.focus_phase IS NOT NULL`,
-    [req.uid]
-  );
   const [pause] = await q(
     `SELECT u.pause_activity_id AS activity_id, u.pause_until AS until, a.name, a.color
      FROM users u JOIN activities a ON a.id=u.pause_activity_id WHERE u.id=$1 AND u.pause_until IS NOT NULL`,
@@ -297,7 +286,7 @@ app.get("/api/state", h(async (req, res) => {
   );
   res.json({
     user, activities, running: running || null, stats, totals, pause: pause || null,
-    focus: focus || null, streaks: await streaks(req.uid, tz, activities), serverNow: new Date().toISOString(),
+    streaks: await streaks(req.uid, tz, activities), serverNow: new Date().toISOString(),
   });
 }));
 
@@ -454,12 +443,8 @@ async function findActivity(uid, body) {
   const [a] = await q("SELECT id, name FROM activities WHERE user_id=$1 AND NOT archived AND lower(name)=lower($2) LIMIT 1", [uid, name]);
   return a;
 }
-const clearFocus = (uid) => q("UPDATE users SET focus_activity_id=NULL, focus_phase=NULL, focus_ends=NULL WHERE id=$1 AND focus_phase IS NOT NULL", [uid]);
-// any manual start/stop replaces a pending break or focus session
-const clearPause = async (uid) => {
-  await q("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_until IS NOT NULL", [uid]);
-  await clearFocus(uid);
-};
+// any manual start/stop replaces a pending break
+const clearPause = (uid) => q("UPDATE users SET pause_activity_id=NULL, pause_until=NULL WHERE id=$1 AND pause_until IS NOT NULL", [uid]);
 
 // Changes made offline arrive later with the time they really happened ("at"): trust it for up to 2 days back
 function eventTime(at) {
@@ -500,7 +485,6 @@ app.post("/api/stop", h(async (req, res) => res.json(await stopRunning(req.uid, 
 
 // A break: stop the running entry now, and start the same activity again when the break is over
 app.post("/api/pause", h(async (req, res) => {
-  await clearFocus(req.uid);
   const minutes = Number.isInteger(req.body?.minutes) ? req.body.minutes : 15;
   if (minutes < 1 || minutes > 240) return res.status(400).json({ error: "Pause between 1 and 240 minutes" });
   const [e] = await q(
@@ -554,77 +538,6 @@ app.post("/api/pause/cancel", h(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// --- focus mode (Pomodoro) ---
-app.post("/api/focus", h(async (req, res) => {
-  const num = (v, d, lo, hi) => { const x = v === undefined ? d : v; return Number.isInteger(x) && x >= lo && x <= hi ? x : null; };
-  const work = num(req.body?.work, 25, 5, 180), brk = num(req.body?.brk, 5, 1, 60), rounds = num(req.body?.rounds, 4, 1, 12);
-  if (!work || !brk || !rounds) return res.status(400).json({ error: "Focus 5–180 min, break 1–60 min, 1–12 rounds" });
-  const [running] = await q("SELECT activity_id FROM entries WHERE user_id=$1 AND stopped_at IS NULL LIMIT 1", [req.uid]);
-  let act = await findActivity(req.uid, req.body);
-  if (!act && running) [act] = await q("SELECT id, name FROM activities WHERE id=$1", [running.activity_id]);
-  if (!act) return res.status(400).json({ error: "Pick an activity to focus on" });
-  if (!running || running.activity_id !== act.id) await startActivity(req.uid, act);
-  else await clearPause(req.uid);
-  const [u] = await q(
-    `UPDATE users SET focus_activity_id=$2, focus_phase='work', focus_round=1, focus_rounds=$3, focus_work=$4, focus_break=$5,
-       focus_ends=now() + make_interval(mins => $4) WHERE id=$1 RETURNING focus_ends, tz`,
-    [req.uid, act.id, rounds, work, brk]
-  );
-  res.json({ ok: true, message: `Focus on ${act.name} until ${clockIn(u.focus_ends, u.tz)}` });
-}));
-
-// Move a focus session to its next phase: when the phase is over (loop / app countdown) or early (skip).
-// The WHERE on the old state makes concurrent callers safe: only one moves it on.
-async function advanceFocus(uid, early) {
-  const [f] = await q(
-    `WITH old AS (SELECT focus_activity_id AS a, focus_phase AS ph, focus_ends AS e, focus_round AS r, focus_rounds AS n,
-                         focus_work AS w, focus_break AS b FROM users
-                  WHERE id=$1 AND focus_phase IS NOT NULL ${early ? "" : "AND focus_ends <= now()"} FOR UPDATE)
-     UPDATE users SET
-       focus_phase = CASE WHEN old.ph='work' AND old.r < old.n THEN 'break' WHEN old.ph='break' THEN 'work' END,
-       focus_round = CASE WHEN old.ph='break' THEN old.r + 1 ELSE old.r END,
-       focus_ends = CASE WHEN old.ph='work' AND old.r < old.n THEN LEAST(now(), old.e) + make_interval(mins => old.b)
-                         WHEN old.ph='break' THEN LEAST(now(), old.e) + make_interval(mins => old.w) END,
-       focus_activity_id = CASE WHEN old.ph='work' AND old.r >= old.n THEN NULL ELSE old.a END
-     FROM old WHERE users.id=$1
-     RETURNING old.a, old.ph, old.e, old.r, old.n, old.w, old.b, users.focus_ends AS next_ends, users.tz`,
-    [uid]
-  );
-  if (!f) return null;
-  const at = new Date(Math.min(Date.now(), new Date(f.e)));
-  const [act] = await q("SELECT id, name FROM activities WHERE id=$1", [f.a]);
-  const name = act?.name || "Focus";
-  let payload;
-  if (f.ph === "work") {
-    await q("UPDATE entries SET stopped_at=GREATEST(started_at, $3::timestamptz) WHERE user_id=$1 AND activity_id=$2 AND stopped_at IS NULL", [uid, f.a, at]);
-    await q("DELETE FROM entries WHERE user_id=$1 AND activity_id=$2 AND stopped_at = started_at", [uid, f.a]); // nothing left of it
-    payload = f.r >= f.n
-      ? { title: "Focus session done", body: `${name}: ${f.n} ${f.n === 1 ? "round" : "rounds"} · ${fmtDur(f.n * f.w * 60)} of focus`, tag: "running" }
-      : { title: `Break · ${f.b} min`, body: `Round ${f.r} of ${f.n} done. ${name} continues at ${clockIn(f.next_ends, f.tz)}`, tag: "running", sticky: true };
-  } else {
-    const [busy] = await q("SELECT 1 FROM entries WHERE user_id=$1 AND stopped_at IS NULL", [uid]);
-    if (!busy) await q("INSERT INTO entries(user_id, activity_id, started_at) VALUES ($1,$2,$3)", [uid, f.a, at]);
-    payload = { title: `Focus · round ${f.r + 1} of ${f.n}`, body: `${name} until ${clockIn(f.next_ends, f.tz)}`, tag: "running", sticky: true,
-      actions: [{ action: "stop", title: "Stop" }] };
-  }
-  await sendToUser(uid, payload).catch((err) => console.warn("push failed:", err.message));
-  return { phase: f.ph, finished: f.ph === "work" && f.r >= f.n };
-}
-
-app.post("/api/focus/skip", h(async (req, res) => res.json({ ok: !!(await advanceFocus(req.uid, true)) })));
-app.post("/api/focus/advance", h(async (req, res) => res.json({ ok: !!(await advanceFocus(req.uid, false)) })));
-app.post("/api/focus/stop", h(async (req, res) => {
-  const [u] = await q("SELECT focus_phase FROM users WHERE id=$1", [req.uid]);
-  const out = u?.focus_phase === "work" ? await stopRunning(req.uid) : (await clearFocus(req.uid), { ok: true, message: "Focus session ended" });
-  res.json(out);
-}));
-
-setInterval(async () => {
-  try {
-    const due = await q("SELECT id FROM users WHERE focus_ends <= now()");
-    for (const u of due) await advanceFocus(u.id, false);
-  } catch (e) { console.warn("focus loop failed:", e.message); }
-}, Number(process.env.PAUSE_TICK_MS) || 15e3);
 
 // --- insights: how habits go together with tracked time (last 90 days, days before today) ---
 app.get("/api/insights", h(async (req, res) => {

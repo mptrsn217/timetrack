@@ -11,6 +11,14 @@ function applyTheme(pref) {
   $$("[data-theme-opt]").forEach((b) => b.setAttribute("aria-selected", b.dataset.themeOpt === pref));
 }
 $$("[data-theme-opt]").forEach((b) => b.onclick = () => applyTheme(b.dataset.themeOpt));
+
+// "When I start a timer, open": Nothing / Minimal / Details (kept per device)
+function syncAutoScreen() { $$("[data-auto]").forEach((b) => b.setAttribute("aria-selected", b.dataset.auto === autoScreenPref())); }
+$$("[data-auto]").forEach((b) => b.onclick = () => {
+  try { localStorage.setItem("autoScreen", b.dataset.auto); localStorage.removeItem("liveAuto"); } catch {}
+  syncAutoScreen();
+});
+syncAutoScreen();
 applyTheme(themePref());
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme(themePref()));
 

@@ -76,6 +76,10 @@
         <div class="seg" role="radiogroup" aria-label="Appearance">
           <button type="button" data-theme-opt="auto">Auto</button><button type="button" data-theme-opt="light">Light</button><button type="button" data-theme-opt="dark">Dark</button>
         </div></div>
+      <div class="appearance"><span>When I start a timer, open</span>
+        <div class="seg" role="radiogroup" aria-label="Screen to open when a timer starts">
+          <button type="button" data-auto="off">Nothing</button><button type="button" data-auto="mini">Minimal</button><button type="button" data-auto="live">Details</button>
+        </div></div>
       <button id="installbtn" hidden><svg width="22" height="22"><use href="#i-home"/></svg>Add to Home Screen</button>
       <button id="csv"><svg width="22" height="22"><use href="#i-dl"/></svg>Export CSV (spreadsheet)</button>
       <button id="backup"><svg width="22" height="22"><use href="#i-dl"/></svg>Download backup</button>
@@ -91,6 +95,7 @@
   </div>
 </dialog>
 <dialog id="live" class="livedlg" aria-label="Live screen"></dialog>
+<dialog id="mini" class="minidlg" aria-label="Minimal timer"></dialog>
 <dialog id="editsheet"><div class="sheet"></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -100,7 +105,6 @@
 <script src="/js/03-track-status.js"></script>
 <script src="/js/04-habits.js"></script>
 <script src="/js/05-live.js"></script>
-<script src="/js/06-focus.js"></script>
 <script src="/js/07-starter.js"></script>
 <script src="/js/08-track.js"></script>
 <script src="/js/09-history.js"></script>

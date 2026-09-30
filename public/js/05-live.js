@@ -4,7 +4,14 @@ let wakeLock = null;
 const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v === "1"; } catch { return d; } };
 const setPref = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch {} };
 const keepOnPref = () => pref("liveKeepOn", true);
-const autoLivePref = () => pref("liveAuto", false);
+// what opens when a timer starts: "off", "mini" (minimal screen) or "live" (detailed screen)
+const autoScreenPref = () => {
+  try { return localStorage.getItem("autoScreen") || (localStorage.getItem("liveAuto") === "1" ? "live" : "off"); } catch { return "off"; }
+};
+function openAutoScreen() {
+  const p = autoScreenPref();
+  if (p === "mini") openMini(); else if (p === "live") openLive();
+}
 const canWake = "wakeLock" in navigator;
 async function setWake(on) {
   try {
@@ -16,7 +23,7 @@ async function setWake(on) {
 }
 // the screen lock is dropped whenever the page is hidden; take it again when it's back
 document.addEventListener("visibilitychange", () => { if (!document.hidden && liveDlg.open && keepOnPref()) setWake(true); });
-const liveActive = () => !!(state.running || state.focus || state.pause);
+const liveActive = () => !!(state.running || state.pause);
 function openLive() {
   if (!liveActive()) return;
   renderLive();
@@ -29,23 +36,14 @@ liveDlg.addEventListener("close", () => setWake(false));
 // whole minutes, rounded up, so "X to go" and "your usual Y" always agree
 const upMin = (sec) => fmtShort(Math.ceil(Math.max(0, sec) / 60) * 60);
 function liveModel() {
-  const r = state.running, f = state.focus, p = !r ? state.pause : null;
-  const id = r?.activity_id ?? f?.activity_id ?? p?.activity_id;
-  const a = state.activities.find((x) => x.id === id) || { id, name: r?.name || f?.name || p?.name, color: f?.color || p?.color, kind: "good" };
+  const r = state.running, p = !r ? state.pause : null;
+  const id = r?.activity_id ?? p?.activity_id;
+  const a = state.activities.find((x) => x.id === id) || { id, name: r?.name || p?.name, color: p?.color, kind: "good" };
   const limit = a.kind === "limit";
   const st = r ? state.stats : null;
   const el = r ? runSec() : 0;
   const m = { a, limit, st, el, tone: "", ringColor: a.color || "var(--accent)", pct: 0 };
-  if (f) {
-    const len = (f.phase === "work" ? f.work : f.brk) * 60;
-    m.big = fmt(Math.max(0, focusLeft()));
-    m.label = f.phase === "work" ? `Focus · round ${f.round} of ${f.rounds}` : `Break · round ${f.round + 1} of ${f.rounds} next`;
-    m.sub = f.phase === "work" ? `${fmt(el)} this session · break at ${clock(f.ends)}` : `Focus resumes at ${clock(f.ends)}`;
-    m.pct = 1 - Math.max(0, focusLeft()) / len;
-    m.msg = f.phase === "work"
-      ? (focusLeft() > 120 ? `Stay with it. ${fmtShort(focusLeft() + 59)} left in this round` : "Almost there. Finish strong")
-      : "Stand up, stretch, drink some water";
-  } else if (p) {
+  if (p) {
     m.big = fmt(Math.max(0, pauseLeft()));
     m.label = "On a break";
     m.sub = `${a.name} continues at ${clock(p.until)}`;
@@ -129,22 +127,19 @@ function liveBody() {
   return `<div class="lvhero">
       <div class="lvclockwrap">${ring}<div class="lvclock"><small>${esc(m.label)}</small><b class="num">${m.big}</b><span>${esc(m.sub)}</span></div></div>
       <p class="lvmsg ${m.tone}">${m.tone === "bad" ? icon("alert", 18) : ""}${esc(m.msg)}</p>
-      ${st?.sessions && !state.focus ? `<p class="lvfacts num">usual ${upMin(st.avg)} · record ${upMin(st.max)} · ${st.sessions} sessions</p>` : ""}
+      ${st?.sessions ? `<p class="lvfacts num">usual ${upMin(st.avg)} · record ${upMin(st.max)} · ${st.sessions} sessions</p>` : ""}
     </div>
     ${cards.length ? `<div class="lvcards">${cards.join("")}</div>` : ""}${rank}`;
 }
 
 function renderLive() {
-  const m = liveModel(), f = state.focus, running = !!state.running;
-  const buttons = f
-    ? `<button class="lvbtn" id="lvskip">${icon("skip", 20)}${f.phase === "work" ? "Skip to break" : "Skip break"}</button>
-       <button class="lvbtn stop" id="lvstop">${icon("stop", 18)}${f.phase === "work" ? "Stop" : "End focus"}</button>`
-    : running
-      ? `<button class="lvbtn" id="lvpause">${icon("pause", 20)}Break</button>
-         ${m.limit ? "" : `<button class="lvbtn" id="lvfocus">${icon("target", 20)}Focus</button>`}
-         <button class="lvbtn stop" id="lvstop">${icon("stop", 18)}Stop</button>`
-      : `<button class="lvbtn" id="lvresume">${icon("play", 18)}Resume now</button>
-         <button class="lvbtn stop" id="lvend">End session</button>`;
+  const m = liveModel(), running = !!state.running;
+  const buttons = running
+    ? `<button class="lvbtn" id="lvmini">${icon("sun", 20)}Minimal</button>
+       <button class="lvbtn" id="lvpause">${icon("pause", 20)}Break</button>
+       <button class="lvbtn stop" id="lvstop">${icon("stop", 18)}Stop</button>`
+    : `<button class="lvbtn" id="lvresume">${icon("play", 18)}Resume now</button>
+       <button class="lvbtn stop" id="lvend">End session</button>`;
   liveDlg.style.setProperty("--c", m.a.color || "var(--accent)");
   liveDlg.innerHTML = `<div class="lv">
     <div class="lvtop">
@@ -154,7 +149,6 @@ function renderLive() {
     </div>
     <div id="lvbody">${liveBody()}</div>
     <div class="lvactions">${buttons}</div>
-    <label class="lvauto"><input type="checkbox" id="lvauto" ${autoLivePref() ? "checked" : ""}> Open this screen whenever I start a timer</label>
   </div>`;
   $("#lvclose").onclick = closeLive;
   $("#lvwake")?.addEventListener("click", () => {
@@ -164,14 +158,9 @@ function renderLive() {
     toast(on ? "Screen stays on while this is open" : "Screen can turn off");
     renderLive();
   });
-  $("#lvauto").onchange = (e) => setPref("liveAuto", e.target.checked);
-  $("#lvstop")?.addEventListener("click", async () => {
-    if (state.focus) { try { await api("/focus/stop", { method: "POST" }); await load(); notify(); } catch (e) { toast(e.message); } }
-    else await stop();
-  });
-  $("#lvskip")?.addEventListener("click", async () => { try { await api("/focus/skip", { method: "POST" }); await load(); } catch (e) { toast(e.message); } });
+  $("#lvstop")?.addEventListener("click", stop);
+  $("#lvmini")?.addEventListener("click", () => { closeLive(); openMini(); });
   $("#lvpause")?.addEventListener("click", openPause);
-  $("#lvfocus")?.addEventListener("click", () => openFocus());
   $("#lvresume")?.addEventListener("click", resumeBreak);
   $("#lvend")?.addEventListener("click", async () => { try { await api("/pause/cancel", { method: "POST" }); await load(); } catch (e) { toast(e.message); } });
   bindLiveBody();
@@ -185,4 +174,34 @@ function tickLive() {
   if (!b || !liveActive()) return;
   b.innerHTML = liveBody();
   bindLiveBody();
+}
+
+/* ---------- minimal screen: a dim, nearly black screen with the timer and one sentence ---------- */
+const miniDlg = $("#mini");
+function renderMini() {
+  const m = liveModel();
+  miniDlg.style.setProperty("--c", m.a.color || "var(--accent)");
+  miniDlg.innerHTML = `<div class="mini">
+    <span class="mname"><i></i>${esc(m.a.name)}</span>
+    <b class="num mclock" id="miniclock">${m.big}</b>
+    <p class="mmsg ${m.tone}" id="minimsg">${esc(m.msg)}</p>
+    <span class="mhint">Tap anywhere to go back</span></div>`;
+}
+function openMini() {
+  if (!liveActive()) return;
+  renderMini();
+  if (!miniDlg.open) miniDlg.showModal();
+  if (keepOnPref()) setWake(true);
+}
+function closeMini() { if (miniDlg.open) miniDlg.close(); }
+miniDlg.addEventListener("click", closeMini);
+miniDlg.addEventListener("close", () => { if (!liveDlg.open) setWake(false); });
+// every second: just the numbers and the sentence
+function tickMini() {
+  if (!liveActive()) return closeMini();
+  const m = liveModel();
+  $("#miniclock").textContent = m.big;
+  const msg = $("#minimsg");
+  if (msg.textContent !== m.msg) msg.textContent = m.msg;
+  msg.className = `mmsg ${m.tone}`;
 }

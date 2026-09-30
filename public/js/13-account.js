@@ -127,12 +127,7 @@ $("#restorefile").onchange = async (ev) => {
 // live tick
 setInterval(() => {
   if (signedIn && liveDlg.open) tickLive();
-  if (signedIn && state.focus) {
-    const left = focusLeft();
-    const fc = $("#focusclock"); if (fc) fc.textContent = fmt(Math.max(0, left));
-    if (left <= 0) advanceFocusNow();
-    if (!state.running) return;
-  }
+  if (signedIn && miniDlg.open) tickMini();
   if (signedIn && !state.running && state.pause) {
     const left = pauseLeft();
     const pc = $("#pauseclock"); if (pc) pc.textContent = fmt(Math.max(0, left));

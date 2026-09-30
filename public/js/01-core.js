@@ -128,7 +128,7 @@ async function load({ background = false } = {}) {
       fresh = false;
       if (!e.offline || !cacheGet("state")) throw e;
       s = cacheGet("state"); // offline: show the last known data
-      if (state.user && state.running !== undefined && signedIn) s = { ...s, running: state.running, focus: state.focus, pause: state.pause };
+      if (state.user && state.running !== undefined && signedIn) s = { ...s, running: state.running, pause: state.pause };
     }
     // the clock correction only comes from a live answer: a saved copy's server time is old,
     // and using it would drag "now" (and the times of offline starts/stops) into the past
@@ -144,6 +144,7 @@ async function load({ background = false } = {}) {
     if (background && editing()) return;
     render();
     if (liveDlg.open) liveActive() ? renderLive() : closeLive();
+    if (miniDlg.open) liveActive() ? renderMini() : closeMini();
     maybeForgotten();
   } catch (e) { if (signedIn && !background) toast(e.message); if (!signedIn) render(); }
   offlineBanner();
