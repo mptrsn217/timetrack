@@ -131,7 +131,7 @@ const slides = [
   pillar(5, 3, "See where the time goes", "Charts, a weekly review and year-long heatmaps show what your days are really made of.", "overview"),
   feature(6, "Track", "One tap to start, one tap to stop", "Every activity is a tile. See how today's session compares with your usual and your record.", "track"),
   feature(7, "Focus", "A calm screen while you work", "Just the time and one quiet line on how you're doing. Nothing else to look at.", "mini", 640, 50),
-  feature(8, "Mastery", "Your 10,000 hours", "Mark a skill and follow every hour toward mastery, with your next milestone and when you'll get there.", "mastery", 640, 88),
+  feature(8, "Mastery", "Your 10,000 hours", "Mark a skill and follow every hour toward mastery, with your next milestone and when you'll get there.", "mastery", 640, 0),
   `<div class="slide" style="display:grid;place-items:center;text-align:center">
     <div class="glow" style="width:1300px;height:1300px;left:-110px;top:-60px"></div>
     <div style="position:relative;display:grid;justify-items:center">

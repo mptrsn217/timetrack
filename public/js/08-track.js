@@ -97,7 +97,7 @@ function streakLine(a) {
   return `<div class="streakl num">${icon("bolt", 12)}${what}${sk.best > sk.current ? ` · best ${sk.best}` : ""}</div>`;
 }
 
-/* ---------- 10,000 hours ---------- */
+/* ---------- 10,000 hours (shown on Overview; the running skill's hours tick in 13-account.js) ---------- */
 const MASTERY_SEC = 10000 * 3600;
 const MILESTONES = [1, 10, 50, 100, 250, 500, 1000, 2500, 5000, 7500, 10000];
 const fmtHours = (sec) => (sec / 3600).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -201,7 +201,7 @@ function renderTrack() {
            ${streakLine(a)}</span>
            ${tileBar(a)}
          </button>`;
-       }).join("")}</div><p class="hint holdhint">Tap to start or stop · press and hold to edit</p>${masteryHTML(acts)}`
+       }).join("")}</div><p class="hint holdhint">Tap to start or stop · press and hold to edit</p>`
     : starterHTML();
 
   app.innerHTML = (acts.length || r ? hero : "") + list;
@@ -217,7 +217,6 @@ function renderTrack() {
   bindLiveGoal(runAct);
   $("#goadd")?.addEventListener("click", () => openActivity());
   $("#resume")?.addEventListener("click", (e) => start(Number(e.currentTarget.dataset.id), pointOf(e.currentTarget)));
-  $("#mstart")?.addEventListener("click", openMasteryPick);
   $("#setgoals")?.addEventListener("click", () => openGoal(state.activities.find((a) => !a.goal_minutes) || state.activities[0]));
   $$(".tile").forEach((b) => {
     b.onclick = () => (r && r.activity_id == b.dataset.id) ? stop() : start(Number(b.dataset.id), pointOf(b));

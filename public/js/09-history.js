@@ -340,11 +340,12 @@ async function openReview(start) {
 
 // Overview: everything for looking back (time, habits, counters, connections)
 function renderOverview() {
-  app.innerHTML = reviewCard() + renderChartCard() + renderCompare() + renderHeatmap() + habitsOverviewHTML();
+  app.innerHTML = reviewCard() + masteryHTML(state.activities) + renderChartCard() + renderCompare() + renderHeatmap() + habitsOverviewHTML();
   bindChart();
   bindHeatmap();
   bindHabitCards();
   $("#openreview").onclick = () => openReview();
+  $("#mstart")?.addEventListener("click", openMasteryPick);
   $$(".blk").forEach((b) => b.onclick = () => openEntry(findEntry(b.dataset.entry)));
 }
 

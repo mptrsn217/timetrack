@@ -30,9 +30,6 @@ await wait(1200);
 await page.evaluate(() => document.querySelectorAll("dialog[open]").forEach((d) => d.close()));
 await shot("track");
 
-await page.evaluate(() => { const m = document.querySelector("h2.section:last-of-type"); window.scrollTo(0, document.body.scrollHeight); });
-await shot("mastery");
-await page.evaluate(() => window.scrollTo(0, 0));
 
 await page.evaluate(() => openLive());
 await shot("live");
@@ -50,6 +47,8 @@ await shot("habits");
 
 await page.evaluate(() => go("overview"));
 await wait(1800);
+await shot("mastery"); // 10,000 hours sits near the top of Overview
+await page.evaluate(() => { const m = document.querySelector(".mastery"); window.scrollTo(0, m.getBoundingClientRect().bottom + scrollY - 70); });
 await shot("overview");
 await page.evaluate(() => window.scrollTo(0, 900));
 await shot("overview2");
