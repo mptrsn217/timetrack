@@ -3,7 +3,7 @@ let googleClientId = null;
 async function renderLogin() {
   app.innerHTML = `<div class="login">
     <span class="mark">${icon("clock", 34)}</span>
-    <h1>Timetrack</h1>
+    <h1>Moonglare</h1>
     <p>One tap to start, one tap to stop. See where your hours actually go.</p>
     <div class="demo" aria-hidden="true">
       <div style="--c:#e9a23b"><i></i>Deep work<em class="num">3h 20m</em></div>
@@ -11,7 +11,7 @@ async function renderLogin() {
       <div style="--c:#5b8def"><i></i>Reading<em class="num">1h 05m</em></div>
     </div>
     <div id="gbtn"></div>
-    ${canInstall() ? `<button class="linkbtn" id="howinstall">${icon("home", 16)}Add Timetrack to your Home Screen</button>` : ""}
+    ${canInstall() ? `<button class="linkbtn" id="howinstall">${icon("home", 16)}Add Moonglare to your Home Screen</button>` : ""}
     <p class="fine">Free. Your data is private to your account. <a href="/privacy.html">Privacy</a></p>
   </div>`;
   $("#howinstall")?.addEventListener("click", openInstallGuide);

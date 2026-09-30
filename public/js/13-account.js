@@ -90,7 +90,7 @@ $("#csv").onclick = async () => {
   const r = await fetch("/api/export.csv");
   if (!r.ok) return toast("Export failed");
   const url = URL.createObjectURL(await r.blob());
-  Object.assign(document.createElement("a"), { href: url, download: "timetrack.csv" }).click();
+  Object.assign(document.createElement("a"), { href: url, download: "moonglare.csv" }).click();
   setTimeout(() => URL.revokeObjectURL(url), 10e3);
   sheet.close();
 };
@@ -103,15 +103,15 @@ async function download(url, fallbackName) {
   Object.assign(document.createElement("a"), { href, download: name }).click();
   setTimeout(() => URL.revokeObjectURL(href), 10e3);
 }
-$("#backup").onclick = async () => { sheet.close(); await download("/api/backup.json", "timetrack-backup.json"); };
+$("#backup").onclick = async () => { sheet.close(); await download("/api/backup.json", "moonglare-backup.json"); };
 $("#restore").onclick = () => $("#restorefile").click();
 $("#restorefile").onchange = async (ev) => {
   const file = ev.target.files[0];
   ev.target.value = "";
   if (!file) return;
   let data;
-  try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a Timetrack backup"); }
-  if (data?.app !== "timetrack") return toast("That file isn't a Timetrack backup");
+  try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a Moonglare backup"); }
+  if (data?.app !== "timetrack") return toast("That file isn't a Moonglare backup");
   const n = Array.isArray(data.entries) ? data.entries.length : 0;
   if (!confirm(`Restore ${n} ${n === 1 ? "entry" : "entries"} from ${new Date(data.exported_at).toLocaleDateString()}? Nothing is deleted; entries you already have are skipped.`)) return;
   sheet.close();

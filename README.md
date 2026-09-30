@@ -1,11 +1,11 @@
-# Timetrack
+# Moonglare
 
 Start/stop time tracker. Node + Postgres, single-page PWA. Anyone can sign in with Google; each account sees only its own data.
 
 ## 1. Google sign-in (Google Cloud Console)
-1. https://console.cloud.google.com → create a project (e.g. "Timetrack").
+1. https://console.cloud.google.com → create a project (e.g. "Moonglare").
 2. **APIs & Services → OAuth consent screen** (Google Auth Platform):
-   - User type **External**, app name "Timetrack", your support email.
+   - User type **External**, app name "Moonglare", your support email.
    - Scopes: none extra needed (sign-in only uses email/profile).
    - **Audience → Publish app** so anyone can sign in (in "Testing" only listed test users can).
      No Google verification is needed for basic sign-in.

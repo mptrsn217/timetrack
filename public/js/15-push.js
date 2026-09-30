@@ -44,13 +44,13 @@ async function openNotifications() {
   if (!pushSupported()) {
     body = isIOS && !isStandalone
       ? `<p class="hint" style="margin:0 4px">On iPhone, notifications only work in the Home Screen app (iOS 16.4 or newer):</p>
-         <ol class="steps"><li>In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>.</li><li>Open <b>Timetrack</b> from your Home Screen and sign in.</li><li>Come back here and tap <b>Turn on</b>.</li></ol>`
+         <ol class="steps"><li>In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>.</li><li>Open <b>Moonglare</b> from your Home Screen and sign in.</li><li>Come back here and tap <b>Turn on</b>.</li></ol>`
       : `<p class="hint" style="margin:0 4px">This browser can't show notifications. Try Chrome on Android, or the Home Screen app on iPhone.</p>`;
   } else {
     const on = !!sub;
     body = `
       <div class="nstatus ${on ? "on" : ""}">${on ? "On for this device" : perm === "denied" ? "Blocked for this site" : "Off for this device"}</div>
-      ${perm === "denied" ? `<p class="hint" style="margin:0 4px">Notifications are blocked. Allow them in your phone's settings (iPhone: Settings → Notifications → Timetrack), then come back.</p>` : ""}
+      ${perm === "denied" ? `<p class="hint" style="margin:0 4px">Notifications are blocked. Allow them in your phone's settings (iPhone: Settings → Notifications → Moonglare), then come back.</p>` : ""}
       <div class="nprefs">${PUSH_PREFS.map(([k, t, d]) => `
         <button type="button" class="nrow" data-pref="${k}" aria-pressed="${info.prefs[k]}"><span class="box" aria-hidden="true"></span>
           <span><b>${t}</b><small>${d}</small></span></button>`).join("")}

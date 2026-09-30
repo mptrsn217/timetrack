@@ -371,7 +371,7 @@ app.put("/api/push/prefs", h(async (req, res) => {
 }));
 
 app.post("/api/push/test", h(async (req, res) => {
-  const sent = await sendToUser(req.uid, { title: "Timetrack", body: "Notifications are working 👍", tag: "test", ttl: 300 });
+  const sent = await sendToUser(req.uid, { title: "Moonglare", body: "Notifications are working 👍", tag: "test", ttl: 300 });
   res.json({ sent });
 }));
 
@@ -1019,7 +1019,7 @@ app.get("/api/backup.json", h(async (req, res) => {
     [req.uid]
   );
   const stamp = new Date().toISOString().slice(0, 10);
-  res.set("Content-Disposition", `attachment; filename="timetrack-backup-${stamp}.json"`);
+  res.set("Content-Disposition", `attachment; filename="moonglare-backup-${stamp}.json"`);
   const habits = await q("SELECT id, name, kind, color, sort, target, step FROM habits WHERE user_id=$1 ORDER BY id", [req.uid]);
   const habit_counts = await q(
     "SELECT c.habit_id, c.day::text AS day, c.count FROM habit_counts c JOIN habits h ON h.id=c.habit_id WHERE h.user_id=$1 ORDER BY c.day",
@@ -1029,6 +1029,7 @@ app.get("/api/backup.json", h(async (req, res) => {
     "SELECT m.habit_id, m.day::text AS day, m.value FROM habit_marks m JOIN habits h ON h.id=m.habit_id WHERE h.user_id=$1 ORDER BY m.day",
     [req.uid]
   );
+  // "timetrack" is the file-format marker from before the Moonglare rename; kept so every backup restores
   res.json({ app: "timetrack", version: 3, exported_at: new Date().toISOString(), activities, entries, habits, habit_marks, habit_counts });
 }));
 
@@ -1036,7 +1037,7 @@ app.get("/api/backup.json", h(async (req, res) => {
 app.post("/api/restore", express.json({ limit: "20mb" }), h(async (req, res) => {
   const { app: appName, activities, entries } = req.body || {};
   if (appName !== "timetrack" || !Array.isArray(activities) || !Array.isArray(entries)) {
-    return res.status(400).json({ error: "This is not a Timetrack backup file" });
+    return res.status(400).json({ error: "This is not a Moonglare backup file" });
   }
   if (activities.length > 1000 || entries.length > 200000) return res.status(400).json({ error: "Backup is too large" });
   const client = await pool.connect();
@@ -1170,4 +1171,4 @@ app.use((err, req, res, next) => {
 });
 
 startPushLoop(sessionStats);
-app.listen(process.env.PORT || 3000, () => console.log("timetrack up"));
+app.listen(process.env.PORT || 3000, () => console.log("moonglare up"));

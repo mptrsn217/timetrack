@@ -29,7 +29,7 @@ const inAppBrowser = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|LinkedInApp|GSA
 const canInstall = () => !isStandalone && (isIOS || isAndroid);
 let installEvent = null; // Chrome/Edge on Android offer their own install dialog
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvent = e; $("#installbtn")?.removeAttribute("hidden"); });
-window.addEventListener("appinstalled", () => { installEvent = null; toast("Timetrack added to your Home Screen"); });
+window.addEventListener("appinstalled", () => { installEvent = null; toast("Moonglare added to your Home Screen"); });
 // once every script has run (isIOS / isStandalone live in push.js)
 document.addEventListener("DOMContentLoaded", () => { if (canInstall()) $("#installbtn").hidden = false; });
 
@@ -47,12 +47,12 @@ function openInstallGuide() {
       ${step(icon("share", 18), safari ? `Tap the <b>Share</b> button in Safari's toolbar (the square with an arrow, at the bottom of the screen, or next to the address on iPad)` : `Tap the <b>Share</b> button in the address bar (the URL bar at the top, the square with an arrow). In Chrome on iPhone, Add to Home Screen is also found under Share`)}
       ${step(icon("plus", 18), `Scroll down the list and tap <b>Add to Home Screen</b>`)}
       ${step(icon("check", 18), `Tap <b>Add</b> in the top-right corner`)}
-      ${step(icon("home", 18), `Open <b>Timetrack</b> from your Home Screen and sign in there once more`)}
+      ${step(icon("home", 18), `Open <b>Moonglare</b> from your Home Screen and sign in there once more`)}
       </ol>
       <p class="hint" style="margin:0 4px">The Home Screen app opens full screen and can send notifications (iOS 16.4 or newer).</p>`;
   } else if (installEvent) {
-    body = `<p class="hint" style="margin:0 4px">Add Timetrack as an app: it opens full screen, has its own icon and can send notifications.</p>
-      <button type="button" class="btn" id="doinstall">${icon("home", 18)}Install Timetrack</button>`;
+    body = `<p class="hint" style="margin:0 4px">Add Moonglare as an app: it opens full screen, has its own icon and can send notifications.</p>
+      <button type="button" class="btn" id="doinstall">${icon("home", 18)}Install Moonglare</button>`;
   } else if (isAndroid) {
     body = `<ol class="isteps">
       ${step(icon("dots", 18), `Tap the browser menu (<b>⋮</b> in Chrome, top right; <b>≡</b> in Samsung Internet, bottom right)`)}
@@ -64,8 +64,8 @@ function openInstallGuide() {
   }
   $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Add to Home Screen</h3>
     <div class="eform">
-      <div class="ipreview"><img src="/icon-192.png" alt="" width="56" height="56"><span><b>Timetrack</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
-      <p class="ibenefit">Adding Timetrack to your Home Screen gives you the best experience and lets you use the app the way it's intended: full screen, with its own icon, and with notifications.</p>
+      <div class="ipreview"><img src="/icon-192.png" alt="" width="56" height="56"><span><b>Moonglare</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
+      <p class="ibenefit">Adding Moonglare to your Home Screen gives you the best experience and lets you use the app the way it's intended: full screen, with its own icon, and with notifications.</p>
       ${body}
       <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="iclose">Got it</button></div>
     </div>`;
