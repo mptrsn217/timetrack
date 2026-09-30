@@ -1,0 +1,35 @@
+{
+  "brand": {
+    "sky-light": "#6fcdf7",
+    "sky": "#5cbfef",
+    "blue": "#3aa8e6",
+    "blue-deep": "#1f8fd6",
+    "reflection": ["#2596db", "#31a3e3", "#43b1ea", "#5cbfef", "#7fcdf3", "#a8def8"]
+  },
+  "light": {
+    "background": "#f3f7fb",
+    "surface": "#ffffff",
+    "surface-2": "#e9f0f7",
+    "line": "#dce6ef",
+    "text": "#142230",
+    "muted": "#64748a",
+    "faint": "#9fadbc",
+    "accent": "#1f8fd6",
+    "on-accent": "#ffffff"
+  },
+  "dark": {
+    "background": "#0d1620",
+    "surface": "#15212e",
+    "surface-2": "#1c2b3b",
+    "line": "#243445",
+    "text": "#e8f1f8",
+    "muted": "#8fa3b6",
+    "faint": "#586c80",
+    "accent": "#5cbfef",
+    "on-accent": "#05202f"
+  },
+  "status": {
+    "good": "#1f9d55",
+    "danger": "#d0453f"
+  }
+}

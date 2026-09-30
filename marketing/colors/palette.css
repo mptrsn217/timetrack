@@ -1,0 +1,25 @@
+/* Moonglare colours, as CSS variables (the same values the app uses in public/app.css) */
+:root {
+  /* brand: the logo's blues */
+  --mg-sky-light: #6fcdf7;
+  --mg-sky: #5cbfef;
+  --mg-blue: #3aa8e6;
+  --mg-blue-deep: #1f8fd6;
+  --mg-logo-gradient: linear-gradient(135deg, #6fcdf7, #1f8fd6);
+
+  /* light theme */
+  --mg-bg: #f3f7fb;
+  --mg-surface: #ffffff;
+  --mg-surface-2: #e9f0f7;
+  --mg-line: #dce6ef;
+  --mg-text: #142230;
+  --mg-muted: #64748a;
+  --mg-accent: #1f8fd6;
+
+  /* dark theme */
+  --mg-dark-bg: #0d1620;
+  --mg-dark-surface: #15212e;
+  --mg-dark-text: #e8f1f8;
+  --mg-dark-muted: #8fa3b6;
+  --mg-dark-accent: #5cbfef;
+}
