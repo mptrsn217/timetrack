@@ -6,10 +6,15 @@
       <stop offset="0" stop-color="#8b5cf6"/>
       <stop offset="1" stop-color="#3f63e0"/>
     </linearGradient>
+    <linearGradient id="horizon" gradientUnits="userSpaceOnUse" x1="106" y1="0" x2="406" y2="0">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity=".25"/>
+      <stop offset=".5" stop-color="#6d5ce8"/>
+      <stop offset="1" stop-color="#3f63e0" stop-opacity=".25"/>
+    </linearGradient>
   </defs>
   <rect width="512" height="512" fill="#ffffff"/>
   <circle cx="256" cy="196" r="84" fill="none" stroke="url(#moon)" stroke-width="18"/>
-  <line x1="106" y1="311" x2="406" y2="311" stroke="#272063" stroke-width="8" stroke-linecap="round"/>
+  <line x1="106" y1="311" x2="406" y2="311" stroke="url(#horizon)" stroke-width="8" stroke-linecap="round"/>
   <g stroke-width="10" stroke-linecap="round">
     <line x1="163.2" y1="332" x2="299.0" y2="332" stroke="#6b4fe6"/>
     <line x1="317.0" y1="332" x2="348.8" y2="332" stroke="#6b4fe6"/>
