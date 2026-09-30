@@ -2,7 +2,7 @@
 let googleClientId = null;
 async function renderLogin() {
   app.innerHTML = `<div class="login">
-    <span class="mark">${icon("clock", 34)}</span>
+    <img class="mark" src="/icon.svg" alt="" width="88" height="88">
     <h1>Moonglare</h1>
     <p>One tap to start, one tap to stop. See where your hours actually go.</p>
     <div class="demo" aria-hidden="true">
