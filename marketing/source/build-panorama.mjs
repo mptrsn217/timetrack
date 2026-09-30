@@ -68,7 +68,7 @@ const html = `<!doctype html><meta charset="utf-8"><style>${FONT_CSS}
     <h2>Better days start with noticing how you spend them.</h2>
     <ol><li><span>1</span>Reduce bad habits</li><li><span>2</span>Reinforce good habits</li><li><span>3</span>See where the time goes</li></ol>
   </div>
-  <div class="url"><b>www.moonglare.ee</b><p>Free · private · works offline</p></div>
+  <div class="url"><b>www.moonglare.ee</b></div>
 </div>`;
 
 const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--allow-file-access-from-files"] });
