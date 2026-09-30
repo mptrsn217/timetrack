@@ -233,10 +233,11 @@
   /* one large, free-standing logo; the header (with its small logo) is hidden while signed out */
   body.out header.top { display: none; }
   .landing .logo { width: clamp(170px, 42vw, 240px); height: auto; display: block; }
-  .landing .lead { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); margin: 12px 0 22px; max-width: 460px; line-height: 1.45; }
+  .landing .lead { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); margin: 12px 0 28px; max-width: 460px; line-height: 1.45; }
   .landing .fine { font-size: 13px; color: var(--faint); margin: 12px 0 0; }
   .landing .fine a { color: inherit; }
-  .gbtn { min-height: 44px; }
+  .gbtn { min-height: 44px; max-width: 100%; }
+  .gbtn-in { width: max-content; transform: scale(var(--s, 1)); transform-origin: top left; }
   .lhero { display: grid; gap: 36px; align-items: center; justify-items: center; text-align: center; padding-top: 16px; }
   .lhtext { display: grid; justify-items: center; }
   .phone { margin: 0; width: min(280px, 72vw); border-radius: 34px; padding: 8px; background: var(--surface);
@@ -245,7 +246,7 @@
 
   .lwhy { text-align: center; display: grid; justify-items: center; gap: 12px; }
   .kicker { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
-  .lwhy h2 { margin: 0; max-width: 720px; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; letter-spacing: -.02em; }
+  .lwhy h2 { margin: 0; max-width: 720px; text-wrap: balance; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; letter-spacing: -.02em; }
   .pillars { display: grid; gap: 14px; width: 100%; margin-top: 22px; text-align: left; }
   .pillar { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--line); }
   .pillar b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 16px; }
