@@ -111,3 +111,18 @@ Start the timer. Put the phone down. ☕
 When a session starts, Moonglare's screen goes quiet: just the time and one line on how you're doing. Nothing to scroll, nothing to tap.
 www.moonglare.ee
 #deepwork #focus #minimalism #productivity #moonglare
+
+---
+
+## Profile panorama (panorama/moonglare-panorama-1 to 3)
+
+Three posts that form one wide image across a row of the profile grid. `moonglare-panorama-full.png` is the whole scene;
+`preview-profile-grid.jpg` shows how the row looks on the profile.
+
+**Post them in this order so they line up left → right: 3 first, then 2, then 1 last.**
+They need to be the three most recent posts to sit together in one row (or keep your total post count a multiple of 3 before you start).
+
+Caption for all three (or only on panorama-1, the last one posted):
+Meet Moonglare 🌙 Better days start with noticing how you spend them.
+Reduce bad habits, reinforce good ones, and see where the time goes. Free at www.moonglare.ee
+#moonglare #timetracking #habittracker #productivity
