@@ -103,17 +103,6 @@ Source: Lally et al. (2010), "How are habits formed", European Journal of Social
 
 ---
 
-## Desk mockup (moonglare-desk-timer)
-
-`moonglare-desk-timer.png` is the clean image (for stories, the website or ads); `moonglare-desk-timer-post.png` has the text.
-
-Start the timer. Put the phone down. ☕
-When a session starts, Moonglare's screen goes quiet: just the time and one line on how you're doing. Nothing to scroll, nothing to tap.
-www.moonglare.ee
-#deepwork #focus #minimalism #productivity #moonglare
-
----
-
 ## Profile panorama (panorama/moonglare-panorama-1 to 3)
 
 Three posts that form one wide image across a row of the profile grid. `moonglare-panorama-full.png` is the whole scene;
