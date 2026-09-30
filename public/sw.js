@@ -1,6 +1,6 @@
 // Offline: the app's own files are kept in a cache so it opens without a connection.
 // Always network first (you get the newest version when online), the cache is the fallback.
-const CACHE = "moonglare-v15";
+const CACHE = "moonglare-v16";
 const SHELL = [
   "/", "/app.css", "/theme.js", "/manifest.json", "/icon-192.png", "/icon-512.png", "/icon.svg", "/apple-touch-icon.png", "/favicon-32.png", "/privacy.html",
   "/js/00-intro.js", "/js/01-core.js", "/js/02-login.js", "/js/03-track-status.js", "/js/04-habits.js", "/js/05-live.js", 
