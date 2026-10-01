@@ -1,8 +1,8 @@
 // Offline: the app's own files are kept in a cache so it opens without a connection.
 // Always network first (you get the newest version when online), the cache is the fallback.
-const CACHE = "moonglare-v26";
+const CACHE = "moonglare-v27";
 const SHELL = [
-  "/", "/app.css", "/theme.js", "/manifest.json", "/icon-192.png", "/icon-512.png", "/icon.svg", "/logo.svg", "/apple-touch-icon.png", "/favicon-32.png", "/privacy.html",
+  "/", "/app.css", "/theme.js", "/manifest.json", "/icons/moonglare-192.png", "/icons/moonglare-512.png", "/icons/moonglare-180.png", "/icon.svg", "/logo.svg", "/apple-touch-icon.png", "/favicon-32.png", "/privacy.html",
   "/js/00-intro.js", "/js/01-core.js", "/js/02-login.js", "/js/03-track-status.js", "/js/04-habits.js", "/js/05-live.js", 
   "/js/07-starter.js", "/js/08-track.js", "/js/09-history.js", "/js/10-entries.js", "/js/11-goals.js", "/js/12-activities.js",
   "/js/13-account.js", "/js/14-appearance.js", "/js/15-push.js",
@@ -40,8 +40,8 @@ self.addEventListener("push", (e) => {
   const options = {
     body: d.body || "",
     tag: d.tag,
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/icons/moonglare-192.png",
+    badge: "/icons/moonglare-192.png",
     data: { url: d.url || "/" },
     renotify: d.tag === "goal" || d.tag === "forgot",
     requireInteraction: !!d.sticky,

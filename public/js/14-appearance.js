@@ -64,7 +64,7 @@ function openInstallGuide() {
   }
   $("#editsheet .sheet").innerHTML = `<div class="grab"></div><h3 tabindex="-1" autofocus>Add to Home Screen</h3>
     <div class="eform">
-      <div class="ipreview"><img src="/icon-192.png" alt="" width="56" height="56"><span><b>Moonglare</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
+      <div class="ipreview"><img src="/icons/moonglare-192.png" alt="" width="56" height="56"><span><b>Moonglare</b><small>One tap to start and stop timers, right from your Home Screen.</small></span></div>
       <p class="ibenefit">Adding Moonglare to your Home Screen gives you the best experience and lets you use the app the way it's intended: full screen, with its own icon, and with notifications.</p>
       ${body}
       <div class="eactions"><span></span><span></span><span></span><button type="button" class="btn ghost" id="iclose">Got it</button></div>

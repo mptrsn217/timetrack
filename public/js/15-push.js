@@ -113,7 +113,7 @@ async function notify() {
   if (!state.running) return;
   swReg.showNotification(state.running.name, {
     tag: "running", body: "Running since " + clock(state.running.started_at),
-    silent: true, requireInteraction: true, icon: "/icon-192.png",
+    silent: true, requireInteraction: true, icon: "/icons/moonglare-192.png",
     actions: [{ action: "stop", title: "Stop" }],
   });
 }

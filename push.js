@@ -56,7 +56,7 @@ export async function rememberOrigin(origin) {
 async function subject() {
   if (process.env.VAPID_SUBJECT) return process.env.VAPID_SUBJECT;
   const [row] = await q("SELECT value FROM app_settings WHERE key='vapid_subject'");
-  return row?.value || "mailto:timetrack@example.com";
+  return row?.value || "https://www.moonglare.ee";
 }
 
 export const prefsOf = (notify) => ({ ...DEFAULT_PREFS, ...(notify || {}) });
